@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
-
 	gphotos "github.com/gphotosuploader/google-photos-api-client-go/v2"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
+	"github.com/ttomsu/gphoto-sync/internal"
+	"net/http"
+	"net/http/httputil"
 )
 
 // printCmd represents the print command
@@ -18,33 +17,12 @@ var printCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	RunE: func(_ *cobra.Command, args []string) error {
-		homeDir, err := os.UserHomeDir()
+		client, err := internal.NewClient()
 		if err != nil {
-			return err
-		}
-		gphotosyncPath := filepath.Join(homeDir, ".config", "gphotosync")
-		tokenFilepath := filepath.Join(gphotosyncPath, "token.json")
-		jsonToken, err := os.ReadFile(tokenFilepath)
-		if err != nil {
-			return err
+			return errors.Wrapf(err, "new client")
 		}
 
-		token := &oauth2.Token{}
-		if err := json.Unmarshal(jsonToken, token); err != nil {
-			return err
-		}
-
-		jsonData, err := os.ReadFile(filepath.Join(gphotosyncPath, "service_account.json"))
-		if err != nil {
-			return err
-		}
-
-		cfg := &oauth2.Config{}
-		if err := json.Unmarshal(jsonData, cfg); err != nil {
-			return err
-		}
-
-		cl, err := gphotos.NewClient(cfg.Client(context.Background(), token))
+		cl, err := gphotos.NewClient(client)
 		if err != nil {
 			return err
 		}
@@ -61,4 +39,27 @@ var printCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(printCmd)
+}
+
+func dumpingClient(client *http.Client) *http.Client {
+	dt := &dumpingTransport{
+		client.Transport,
+	}
+	client.Transport = dt
+	return client
+}
+
+type dumpingTransport struct {
+	http.RoundTripper
+}
+
+func (d dumpingTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	dReq, _ := httputil.DumpRequest(request, false)
+	fmt.Printf("Dumped Request:\n%v\n", string(dReq))
+	resp, err := d.RoundTrip(request)
+	if resp != nil {
+		dRes, _ := httputil.DumpResponse(resp, false)
+		fmt.Printf("Dumped Response:\n%v\n", string(dRes))
+	}
+	return resp, err
 }

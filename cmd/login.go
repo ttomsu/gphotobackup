@@ -2,13 +2,15 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
+	"github.com/ttomsu/gphoto-sync/internal"
 	"net/http"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
+	"time"
 
 	gphotos "github.com/gphotosuploader/google-photos-api-client-go/v2"
 	"github.com/spf13/cobra"
@@ -22,18 +24,20 @@ var loginCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	RunE: func(_ *cobra.Command, args []string) error {
-		jsonData, err := os.ReadFile("/Users/ttomsu/Downloads/credentials.json")
+		oauthCreds, err := os.ReadFile(viper.GetString("creds"))
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "reading --creds flag")
 		}
-		cfg, err := google.ConfigFromJSON(jsonData, gphotos.PhotoslibraryReadonlyScope)
+		cfg, err := google.ConfigFromJSON(oauthCreds, gphotos.PhotoslibraryReadonlyScope)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "cfg from creds data")
 		}
+		cfg.RedirectURL = "http://localhost:9898/login"
+
 		url := cfg.AuthCodeURL("state", oauth2.AccessTypeOffline)
 		err = openInBrowser(url)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "auth code url")
 		}
 
 		codeChan := make(chan string, 1)
@@ -44,31 +48,27 @@ var loginCmd = &cobra.Command{
 		})
 		go server.ListenAndServe()
 
-		fmt.Println("Blocking...")
-		code := <-codeChan
-		fmt.Println("Unblocked!")
-		server.Shutdown(context.Background())
+		fmt.Println("Waiting for approval...")
+		var code string
+		timeout := time.NewTimer(2 * time.Minute)
+		select {
+		case code = <-codeChan:
+		case <-timeout.C:
+		}
+		_ = server.Shutdown(context.Background())
+		if code == "" {
+			return errors.New("Did not get code in time.")
+		}
 		token, err := cfg.Exchange(context.Background(), code)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "exchange")
 		}
 
-		tokenBytes, err := json.MarshalIndent(token, "", "\t")
-		if err != nil {
-			return err
+		if err := internal.WriteJSONToConfigDir(internal.TokenFilename, token); err != nil {
+			return errors.Wrapf(err, "writing token.json")
 		}
-
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-		credDir := filepath.Join(homeDir, ".config", "gphotosync")
-		if err := os.MkdirAll(credDir, 0700); err != nil {
-			return err
-		}
-		credPath := filepath.Join(credDir, "token.json")
-		if err := os.WriteFile(credPath, tokenBytes, os.FileMode(0600)); err != nil {
-			return err
+		if err := internal.WriteToConfigDir(internal.OAuthClientFilename, oauthCreds); err != nil {
+			return errors.Wrapf(err, "writing oauth_client.json")
 		}
 		fmt.Println("Logged in!")
 		return nil
@@ -77,6 +77,10 @@ var loginCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(loginCmd)
+
+	loginCmd.Flags().String("creds", "", "Path to the OAuth 2.0 credentials file for the Photos Library API")
+	loginCmd.MarkFlagRequired("creds")
+	_ = viper.BindPFlags(loginCmd.Flags())
 }
 
 func openInBrowser(url string) (err error) {
