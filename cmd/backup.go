@@ -14,7 +14,7 @@ func init() {
 	rootCmd.AddCommand(backupCmd)
 
 	backupCmd.Flags().String("albumID", "", "")
-	backupCmd.Flags().Duration("since", 30*(24*time.Hour), "")
+	backupCmd.Flags().Int("sinceDays", 0, "")
 	backupCmd.Flags().String("out", ".", "")
 	backupCmd.Flags().Int("workers", 3, "Concurrent download workers")
 
@@ -34,9 +34,34 @@ var backupCmd = &cobra.Command{
 			return errors.Wrapf(err, "new session")
 		}
 
-		searchReq := &photoslibrary.SearchMediaItemsRequest{
-			AlbumId: viper.GetString("albumID"),
+		searchReq := &photoslibrary.SearchMediaItemsRequest{}
+		switch {
+		case viper.GetString("albumID") != "":
+			searchReq.AlbumId = viper.GetString("albumID")
+		case viper.GetDuration("sinceDays") != 0:
+			durDays := viper.GetDuration("sinceDays")
+			ey, em, ed := time.Now().Date()
+			sy, sm, sd := time.Now().Add(-1 * 24 * time.Hour * durDays).Date()
+			searchReq.Filters = &photoslibrary.Filters{
+				DateFilter: &photoslibrary.DateFilter{
+					Ranges: []*photoslibrary.DateRange{
+						{
+							StartDate: &photoslibrary.Date{
+								Day:   int64(sd),
+								Month: int64(sm),
+								Year:  int64(sy),
+							},
+							EndDate: &photoslibrary.Date{
+								Day:   int64(ed),
+								Month: int64(em),
+								Year:  int64(ey),
+							},
+						},
+					},
+				},
+			}
 		}
+
 		bs.Start(searchReq)
 		return nil
 	},
