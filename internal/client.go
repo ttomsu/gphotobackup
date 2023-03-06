@@ -3,11 +3,12 @@ package internal
 import (
 	"context"
 	"encoding/json"
-	gphotos "github.com/gphotosuploader/google-photos-api-client-go/v2"
+	"net/http"
+
+	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
-	"net/http"
 )
 
 func NewClient() (*http.Client, error) {
@@ -29,7 +30,7 @@ func NewClient() (*http.Client, error) {
 		return nil, errors.New("invalid oauth_client data. Retry after 'gphotosync login'")
 	}
 
-	cfg, err := google.ConfigFromJSON(oauthClientData, gphotos.PhotoslibraryReadonlyScope)
+	cfg, err := google.ConfigFromJSON(oauthClientData, photoslibrary.PhotoslibraryReadonlyScope)
 	if err != nil {
 		return nil, errors.Wrap(err, "oauth client cfg")
 	}

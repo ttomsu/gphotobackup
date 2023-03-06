@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/ttomsu/gphoto-sync/internal"
@@ -12,7 +13,6 @@ import (
 	"runtime"
 	"time"
 
-	gphotos "github.com/gphotosuploader/google-photos-api-client-go/v2"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -28,7 +28,7 @@ var loginCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrapf(err, "reading --creds flag")
 		}
-		cfg, err := google.ConfigFromJSON(oauthCreds, gphotos.PhotoslibraryReadonlyScope)
+		cfg, err := google.ConfigFromJSON(oauthCreds, photoslibrary.PhotoslibraryReadonlyScope)
 		if err != nil {
 			return errors.Wrapf(err, "cfg from creds data")
 		}

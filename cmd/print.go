@@ -3,7 +3,8 @@ package cmd
 import (
 	"context"
 	"fmt"
-	gphotos "github.com/gphotosuploader/google-photos-api-client-go/v2"
+
+	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/ttomsu/gphoto-sync/internal"
@@ -20,17 +21,21 @@ var printCmd = &cobra.Command{
 			return errors.Wrapf(err, "new client")
 		}
 
-		cl, err := gphotos.NewClient(client)
+		svc, err := photoslibrary.New(client)
 		if err != nil {
 			return err
 		}
-		albums, err := cl.Albums.List(context.Background())
+
+		err = svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
+			for _, album := range resp.Albums {
+				fmt.Printf("Album found: %v, size %v (ID: %v)\n", album.Title, album.TotalMediaItems, album.Id)
+			}
+			return nil
+		})
 		if err != nil {
 			return err
 		}
-		for _, album := range albums {
-			fmt.Printf("Album found: %v, size %v\n", album.Title, album.MediaItemsCount)
-		}
+
 		return nil
 	},
 }
