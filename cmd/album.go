@@ -16,7 +16,7 @@ func init() {
 
 	albumCmd.Flags().String("id", "", "Album ID")
 	albumCmd.MarkFlagRequired("id")
-	_ = viper.BindPFlags(albumCmd.Flags())
+	_ = viper.BindPFlag("id", albumCmd.Flags().Lookup("id"))
 }
 
 var albumCmd = &cobra.Command{
@@ -32,7 +32,11 @@ var albumCmd = &cobra.Command{
 			return err
 		}
 
-		err = cl.MediaItems.Search(&photoslibrary.SearchMediaItemsRequest{AlbumId: viper.GetString("id")}).
+		albumID := viper.GetString("id")
+		if albumID == "" {
+			return errors.New("--id missing")
+		}
+		err = cl.MediaItems.Search(&photoslibrary.SearchMediaItemsRequest{AlbumId: albumID}).
 			Pages(context.Background(), func(resp *photoslibrary.SearchMediaItemsResponse) error {
 				for _, item := range resp.MediaItems {
 					itemJSON, _ := json.MarshalIndent(item, "", "\t")

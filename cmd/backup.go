@@ -15,6 +15,8 @@ func init() {
 
 	backupCmd.Flags().String("albumID", "", "")
 	backupCmd.Flags().Int("sinceDays", 0, "")
+	backupCmd.Flags().String("start", "", "")
+	backupCmd.Flags().String("end", "", "")
 	backupCmd.Flags().String("out", ".", "")
 	backupCmd.Flags().Int("workers", 3, "Concurrent download workers")
 
@@ -60,6 +62,42 @@ var backupCmd = &cobra.Command{
 					},
 				},
 			}
+		case viper.GetString("start") != "":
+			start, err := time.Parse("2006-01-02", viper.GetString("start"))
+			if err != nil {
+				return errors.Wrap(err, "invalid --start")
+			}
+			sy, sm, sd := start.Date()
+
+			ey, em, ed := time.Now().Date()
+			if toStr := viper.GetString("end"); toStr != "" {
+				if end, err := time.Parse("2006-01-02", toStr); err != nil {
+					return errors.Wrap(err, "invalid --end")
+				} else {
+					ey, em, ed = end.Date()
+				}
+
+			}
+			searchReq.Filters = &photoslibrary.Filters{
+				DateFilter: &photoslibrary.DateFilter{
+					Ranges: []*photoslibrary.DateRange{
+						{
+							StartDate: &photoslibrary.Date{
+								Day:   int64(sd),
+								Month: int64(sm),
+								Year:  int64(sy),
+							},
+							EndDate: &photoslibrary.Date{
+								Day:   int64(ed),
+								Month: int64(em),
+								Year:  int64(ey),
+							},
+						},
+					},
+				},
+			}
+		default:
+			return errors.New("Must specify either --albumID, --sinceDays or --start[/--end]")
 		}
 
 		bs.Start(searchReq)

@@ -13,9 +13,9 @@ import (
 func init() {
 	printCmd.AddCommand(itemCmd)
 
-	itemCmd.Flags().String("id", "", "Item ID")
-	itemCmd.MarkFlagRequired("id")
-	_ = viper.BindPFlags(itemCmd.Flags())
+	//itemCmd.Flags().String("id", "", "Item ID")
+	//itemCmd.MarkFlagRequired("id")
+	//_ = viper.BindPFlags(itemCmd.Flags())
 }
 
 var itemCmd = &cobra.Command{
