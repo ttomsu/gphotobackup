@@ -192,7 +192,7 @@ func wrap(mi *photoslibrary.MediaItem, baseDestDir string) *mediaItemWrapper {
 func (miw *mediaItemWrapper) destDir() string {
 	dir := "unknown"
 	if !miw.creationTime.IsZero() {
-		dir = miw.creationTime.Format("2006/01/02")
+		dir = miw.creationTime.Local().Format("2006/01/02")
 	}
 	return filepath.Join(miw.baseDestDir, dir)
 }
