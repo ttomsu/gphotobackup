@@ -1,4 +1,4 @@
-module github.com/ttomsu/gphoto-sync
+module github.com/ttomsu/gphotobackup
 
 go 1.19
 

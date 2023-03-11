@@ -1,6 +1,6 @@
 package main
 
-import "github.com/ttomsu/gphoto-sync/cmd"
+import "github.com/ttomsu/gphotobackup/cmd"
 
 func main() {
 	cmd.Execute()

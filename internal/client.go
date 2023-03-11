@@ -14,9 +14,9 @@ import (
 func NewClient() (*http.Client, error) {
 	jsonToken, err := ReadFromConfigDir(TokenFilename)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading token.json. Retry after 'gphotosync login'")
+		return nil, errors.Wrap(err, "reading token.json. Retry after 'gphotobackup login'")
 	} else if len(jsonToken) == 0 {
-		return nil, errors.New("invalid token.json. Retry after running 'gphotosync login'?")
+		return nil, errors.New("invalid token.json. Retry after running 'gphotobackup login'?")
 	}
 	token := &oauth2.Token{}
 	if err = json.Unmarshal(jsonToken, token); err != nil {
@@ -25,9 +25,9 @@ func NewClient() (*http.Client, error) {
 
 	oauthClientData, err := ReadFromConfigDir(OAuthClientFilename)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading oauth_client.json. Retry after 'gphotosync login'")
+		return nil, errors.Wrap(err, "reading oauth_client.json. Retry after 'gphotobackup login'")
 	} else if len(oauthClientData) == 0 {
-		return nil, errors.New("invalid oauth_client data. Retry after 'gphotosync login'")
+		return nil, errors.New("invalid oauth_client data. Retry after 'gphotobackup login'")
 	}
 
 	cfg, err := google.ConfigFromJSON(oauthClientData, photoslibrary.PhotoslibraryReadonlyScope)

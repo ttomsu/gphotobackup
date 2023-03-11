@@ -14,7 +14,7 @@ var cfgFile string
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:          "gphotosync",
+	Use:          "gphotobackup",
 	SilenceUsage: true,
 }
 
@@ -56,7 +56,7 @@ func initConfig() {
 
 		// Search config in home directory with name ".houselbot" (without extension).
 		viper.AddConfigPath(home)
-		viper.SetConfigName(".gphotosync")
+		viper.SetConfigName(".gphotobackup")
 		viper.SetConfigType("yaml")
 	}
 

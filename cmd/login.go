@@ -6,7 +6,7 @@ import (
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"github.com/ttomsu/gphoto-sync/internal"
+	"github.com/ttomsu/gphotobackup/internal"
 	"net/http"
 	"os"
 	"os/exec"

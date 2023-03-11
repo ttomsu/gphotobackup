@@ -2,4 +2,4 @@
 
 set -eo pipefail
 
-GOOS=linux go build -o gphotosync-linux gphotosync.go
+GOOS=linux go build -o gphotobackup-linux gphotobackup.go
