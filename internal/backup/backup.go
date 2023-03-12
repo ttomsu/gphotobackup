@@ -116,7 +116,7 @@ func (w *worker) start(queue <-chan *photoslibrary.MediaItem) {
 					continue
 				}
 			} else {
-				fmt.Printf("%v already exists\n", miw.destFilepath())
+				fmt.Printf("%v already exists\n", miw.shortDestFilepath())
 			}
 			w.wg.Done()
 		case <-w.stop:
@@ -203,12 +203,24 @@ func (miw *mediaItemWrapper) destDir() string {
 }
 
 func (miw *mediaItemWrapper) destFilepath() string {
+	return filepath.Join(miw.destDir(), miw.filename(false))
+}
+
+func (miw *mediaItemWrapper) shortDestFilepath() string {
+	return filepath.Join(miw.destDir(), miw.filename(true))
+}
+
+func (miw *mediaItemWrapper) filename(short bool) string {
 	parts := strings.Split(miw.src.Filename, ".")
 	var filename string
 	if len(parts) == 2 {
-		filename = fmt.Sprintf("%v-%v.%v", parts[0], miw.src.Id, parts[1])
+		id := miw.src.Id
+		if short && len(id) > 8 {
+			id = fmt.Sprintf("...%v", id[len(id)-9:len(id)-1])
+		}
+		filename = fmt.Sprintf("%v-%v.%v", parts[0], id, parts[1])
 	} else {
 		filename = miw.src.Filename
 	}
-	return filepath.Join(miw.destDir(), filename)
+	return filename
 }
