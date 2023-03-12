@@ -20,7 +20,8 @@ func init() {
 }
 
 var albumCmd = &cobra.Command{
-	Use: "album",
+	Use:   "album",
+	Short: "Print media items in this album",
 	RunE: func(_ *cobra.Command, args []string) error {
 		client, err := internal.NewClient()
 		if err != nil {

@@ -28,7 +28,8 @@ func init() {
 }
 
 var backupCmd = &cobra.Command{
-	Use: "backup",
+	Use:   "backup",
+	Short: "Download all photos/videos found in the specified album or date range",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		client, err := internal.NewClient()
 		if err != nil {

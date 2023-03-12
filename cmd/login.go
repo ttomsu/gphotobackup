@@ -32,8 +32,7 @@ func init() {
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "",
-	Long:  "",
+	Short: "Do the OAuth dance with the specified credentials and cache the results",
 	RunE: func(_ *cobra.Command, args []string) error {
 		oauthCreds, err := os.ReadFile(viper.GetString("creds"))
 		if err != nil {

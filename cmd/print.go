@@ -13,8 +13,7 @@ import (
 // printCmd represents the print command
 var printCmd = &cobra.Command{
 	Use:   "print",
-	Short: "",
-	Long:  "",
+	Short: "Print all albums available",
 	RunE: func(_ *cobra.Command, args []string) error {
 		client, err := internal.NewClient()
 		if err != nil {
