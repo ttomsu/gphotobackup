@@ -29,16 +29,6 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-
-	//rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.houselbot.yaml)")
-	//rootCmd.PersistentFlags().String("articles", "", "Which article list to choose from")
-	//_ = viper.BindPFlag("articles", rootCmd.PersistentFlags().Lookup("articles"))
-	//
-	//rootCmd.PersistentFlags().StringSlice("email.to", []string{}, "Also email these addresses")
-	//_ = viper.BindPFlag("email.to", rootCmd.PersistentFlags().Lookup("email.to"))
-	//
-	//viper.SetDefault("email.host", "smtp.gmail.com")
-	//viper.SetDefault("email.port", 587)
 }
 
 // initConfig reads in config file and ENV variables if set.

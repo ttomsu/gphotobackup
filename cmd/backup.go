@@ -14,13 +14,17 @@ func init() {
 	rootCmd.AddCommand(backupCmd)
 
 	backupCmd.Flags().String("albumID", "", "")
+	_ = viper.BindPFlag("albumID", backupCmd.Flags().Lookup("albumID"))
 	backupCmd.Flags().Int("sinceDays", 0, "")
+	_ = viper.BindPFlag("", backupCmd.Flags().Lookup("sinceDays"))
 	backupCmd.Flags().String("start", "", "")
+	_ = viper.BindPFlag("", backupCmd.Flags().Lookup("start"))
 	backupCmd.Flags().String("end", "", "")
+	_ = viper.BindPFlag("", backupCmd.Flags().Lookup("end"))
 	backupCmd.Flags().String("out", ".", "")
+	_ = viper.BindPFlag("", backupCmd.Flags().Lookup("out"))
 	backupCmd.Flags().Int("workers", 3, "Concurrent download workers")
-
-	_ = viper.BindPFlags(backupCmd.Flags())
+	_ = viper.BindPFlag("", backupCmd.Flags().Lookup("workers"))
 }
 
 var backupCmd = &cobra.Command{

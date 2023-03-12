@@ -18,6 +18,17 @@ import (
 	"golang.org/x/oauth2/google"
 )
 
+func init() {
+	rootCmd.AddCommand(loginCmd)
+
+	loginCmd.Flags().String("creds", "", "Path to the OAuth 2.0 credentials file for the Photos Library API")
+	loginCmd.MarkFlagRequired("creds")
+	_ = viper.BindPFlag("creds", loginCmd.Flags().Lookup("creds"))
+
+	loginCmd.Flags().Bool("browser", true, "Use a local browser to obtain user consent.")
+	_ = viper.BindPFlag("browser", loginCmd.Flags().Lookup("browser"))
+}
+
 // loginCmd represents the login command
 var loginCmd = &cobra.Command{
 	Use:   "login",
@@ -35,27 +46,44 @@ var loginCmd = &cobra.Command{
 		cfg.RedirectURL = "http://localhost:9898/login"
 
 		url := cfg.AuthCodeURL("state", oauth2.AccessTypeOffline)
-		err = openInBrowser(url)
-		if err != nil {
-			return errors.Wrapf(err, "auth code url")
+		codeChan := make(chan string, 1)
+		var server *http.Server
+
+		if viper.GetBool("browser") {
+			err = openInBrowser(url)
+			if err != nil {
+				return errors.Wrapf(err, "auth code url")
+			}
+
+			server := &http.Server{Addr: ":9898"}
+			http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+				codeChan <- r.URL.Query().Get("code")
+				w.Write([]byte("You can close this window now!"))
+			})
+			go server.ListenAndServe()
+
+			fmt.Println("Waiting for approval...")
+		} else {
+			fmt.Printf("In another browser, navigate to:\n%v\n\n", url)
+			fmt.Println("Enter query parameter 'code' here:")
+			var c string
+			if _, err := fmt.Scan(&c); err != nil {
+				return errors.Wrap(err, "getting code from command line")
+			} else if c == "" {
+				return errors.New("code cannot be blank")
+			}
+			codeChan <- c
 		}
 
-		codeChan := make(chan string, 1)
-		server := &http.Server{Addr: ":9898"}
-		http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-			codeChan <- r.URL.Query().Get("code")
-			w.Write([]byte("You can close this window now!"))
-		})
-		go server.ListenAndServe()
-
-		fmt.Println("Waiting for approval...")
-		var code string
 		timeout := time.NewTimer(2 * time.Minute)
+		var code string
 		select {
 		case code = <-codeChan:
 		case <-timeout.C:
 		}
-		_ = server.Shutdown(context.Background())
+		if server != nil {
+			_ = server.Shutdown(context.Background())
+		}
 		if code == "" {
 			return errors.New("Did not get code in time.")
 		}
@@ -73,14 +101,6 @@ var loginCmd = &cobra.Command{
 		fmt.Println("Logged in!")
 		return nil
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(loginCmd)
-
-	loginCmd.Flags().String("creds", "", "Path to the OAuth 2.0 credentials file for the Photos Library API")
-	loginCmd.MarkFlagRequired("creds")
-	_ = viper.BindPFlags(loginCmd.Flags())
 }
 
 func openInBrowser(url string) (err error) {
