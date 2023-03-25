@@ -22,11 +22,12 @@ jobs:
       with:
         go-version: 1.19
 
-    - name: Build
+    - name: Build All Packages
       run: go build -v ./...
 
     - name: Test
       run: go test -v ./...
       
-    - name: Build Linux
-      run: ./build-linux.sh
+    - name: Build Linux binary
+      run: go build -o gphotobackup-linux gphotobackup.go
+
