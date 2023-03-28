@@ -25,6 +25,8 @@ func init() {
 	_ = viper.BindPFlag("out", backupCmd.Flags().Lookup("out"))
 	backupCmd.Flags().Int("workers", 3, "Concurrent download workers")
 	_ = viper.BindPFlag("workers", backupCmd.Flags().Lookup("workers"))
+	backupCmd.Flags().Bool("verbose", true, "Emit details of all media items")
+	_ = viper.BindPFlag("verbose", backupCmd.Flags().Lookup("verbose"))
 }
 
 var backupCmd = &cobra.Command{

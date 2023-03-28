@@ -3,8 +3,6 @@ package backup
 import (
 	"context"
 	"fmt"
-	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
-	"github.com/pkg/errors"
 	"io"
 	"net/http"
 	"os"
@@ -12,6 +10,10 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 type Session struct {
@@ -95,7 +97,9 @@ func (w *worker) start(queue <-chan *photoslibrary.MediaItem) {
 	for {
 		select {
 		case mi := <-queue:
-			fmt.Printf("Worker %v got %v of size %vw x %vh created at %v\n", w.id, mi.MimeType, mi.MediaMetadata.Width, mi.MediaMetadata.Height, mi.MediaMetadata.CreationTime)
+			if viper.GetBool("verbose") {
+				fmt.Printf("Worker %v got %v of size %vw x %vh created at %v\n", w.id, mi.MimeType, mi.MediaMetadata.Width, mi.MediaMetadata.Height, mi.MediaMetadata.CreationTime)
+			}
 			miw := wrap(mi, w.baseDestDir)
 			err := w.ensureDestExists(miw)
 			if err != nil {
@@ -116,7 +120,9 @@ func (w *worker) start(queue <-chan *photoslibrary.MediaItem) {
 					continue
 				}
 			} else {
-				fmt.Printf("%v already exists\n", miw.shortDestFilepath())
+				if viper.GetBool("verbose") {
+					fmt.Printf("%v already exists\n", miw.shortDestFilepath())
+				}
 			}
 			w.wg.Done()
 		case <-w.stop:
@@ -163,7 +169,7 @@ func (w *worker) fetchItem(mi *photoslibrary.MediaItem) ([]byte, error) {
 
 func (w *worker) writeItem(miw *mediaItemWrapper, data []byte) error {
 	defer func() {
-		fmt.Printf("Worker %v finished in %v\n", w.id, time.Now().Sub(miw.startTime))
+		fmt.Printf("Worker %v finished %v in %v\n", w.id, miw.shortDestFilepath(), time.Since(miw.startTime))
 	}()
 	if err := os.WriteFile(miw.destFilepath(), data, 0644); err != nil {
 		return errors.Wrapf(err, "writing item %v", miw.src.Id)
