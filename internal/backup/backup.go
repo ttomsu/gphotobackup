@@ -18,7 +18,7 @@ import (
 
 type Session struct {
 	svc         *photoslibrary.Service
-	queue       chan *photoslibrary.MediaItem
+	queue       chan *mediaItemWrapper
 	wg          *sync.WaitGroup
 	baseDestDir string
 	workers     []*worker
@@ -47,7 +47,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 
 	return &Session{
 		svc:         svc,
-		queue:       make(chan *photoslibrary.MediaItem, 100),
+		queue:       make(chan *mediaItemWrapper, 100),
 		wg:          wg,
 		baseDestDir: baseDestDir,
 		workers:     workers,
@@ -66,7 +66,7 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
 			fmt.Printf("Adding %v items to queue\n", len(resp.MediaItems))
 
 			for _, item := range resp.MediaItems {
-				bs.queue <- item
+				bs.queue <- wrap(item, bs.baseDestDir)
 			}
 			return nil
 		})
@@ -93,14 +93,15 @@ type worker struct {
 	client      *http.Client
 }
 
-func (w *worker) start(queue <-chan *photoslibrary.MediaItem) {
+func (w *worker) start(queue <-chan *mediaItemWrapper) {
 	for {
 		select {
-		case mi := <-queue:
+		case miw := <-queue:
+			mi := miw.src
 			if viper.GetBool("verbose") {
 				fmt.Printf("Worker %v got %v of size %vw x %vh created at %v\n", w.id, mi.MimeType, mi.MediaMetadata.Width, mi.MediaMetadata.Height, mi.MediaMetadata.CreationTime)
 			}
-			miw := wrap(mi, w.baseDestDir)
+
 			err := w.ensureDestExists(miw)
 			if err != nil {
 				fmt.Printf("Error creating dest for %v, err: %v\n", mi.Filename, err)
