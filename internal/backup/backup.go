@@ -79,11 +79,18 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, album
 func (bs *Session) StartAlbums() {
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
+			albumPath := filepath.Join("albums", album.Title)
+			existingCount := bs.countFiles(albumPath)
+
+			if existingCount == int(album.TotalMediaItems) {
+				fmt.Printf("Album %v already contains %v items, skipping", album.Title, existingCount)
+				continue
+			}
+
+			fmt.Printf("Backing up %v items from album to %v", existingCount, albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				AlbumId: album.Id,
 			}
-			albumPath := filepath.Join("albums", album.Title)
-			fmt.Printf("Backing up album to %v", albumPath)
 			bs.Start(searchReq, albumPath)
 		}
 		return nil
@@ -99,6 +106,19 @@ func (bs *Session) Stop() {
 		w.stop <- true
 	}
 	bs.wg.Wait()
+}
+
+func (bs *Session) countFiles(dir string) int {
+	f, err := os.Open(filepath.Join(bs.baseDestDir, dir))
+	if err != nil {
+		return -1
+	}
+	list, err := f.Readdirnames(-1)
+	f.Close()
+	if err != nil {
+		return -1
+	}
+	return len(list)
 }
 
 type worker struct {
