@@ -82,6 +82,7 @@ func (bs *Session) StartAlbums() {
 			albumPath := filepath.Join("albums", album.Title)
 			existingCount := bs.countFiles(albumPath)
 
+			fmt.Printf("Album count: %v, dir count: %v", album.TotalMediaItems, existingCount)
 			if existingCount == int(album.TotalMediaItems) {
 				fmt.Printf("Album %v already contains %v items, skipping", album.Title, existingCount)
 				continue
@@ -109,13 +110,16 @@ func (bs *Session) Stop() {
 }
 
 func (bs *Session) countFiles(dir string) int {
-	f, err := os.Open(filepath.Join(bs.baseDestDir, dir))
+	fullDir := filepath.Join(bs.baseDestDir, dir)
+	f, err := os.Open(fullDir)
 	if err != nil {
+		fmt.Printf("error opening fullDir %v to count: %v", fullDir, err)
 		return -1
 	}
 	list, err := f.Readdirnames(-1)
 	f.Close()
 	if err != nil {
+		fmt.Printf("error reading dirnames: %v", err)
 		return -1
 	}
 	return len(list)
