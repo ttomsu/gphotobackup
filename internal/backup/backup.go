@@ -82,13 +82,13 @@ func (bs *Session) StartAlbums() {
 			albumPath := filepath.Join("albums", album.Title)
 			existingCount := bs.countFiles(albumPath)
 
-			fmt.Printf("Album count: %v, dir count: %v", album.TotalMediaItems, existingCount)
+			fmt.Printf("Album count: %v, dir count: %v\n", album.TotalMediaItems, existingCount)
 			if existingCount == int(album.TotalMediaItems) {
-				fmt.Printf("Album %v already contains %v items, skipping", album.Title, existingCount)
+				fmt.Printf("Album %v already contains %v items, skipping\n", album.Title, existingCount)
 				continue
 			}
 
-			fmt.Printf("Backing up %v items from album to %v", existingCount, albumPath)
+			fmt.Printf("Backing up %v items from album to %v\n", existingCount, albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				AlbumId: album.Id,
 			}
@@ -113,13 +113,13 @@ func (bs *Session) countFiles(dir string) int {
 	fullDir := filepath.Join(bs.baseDestDir, dir)
 	f, err := os.Open(fullDir)
 	if err != nil {
-		fmt.Printf("error opening fullDir %v to count: %v", fullDir, err)
+		fmt.Printf("error opening fullDir %v to count: %v\n", fullDir, err)
 		return -1
 	}
 	list, err := f.Readdirnames(-1)
 	f.Close()
 	if err != nil {
-		fmt.Printf("error reading dirnames: %v", err)
+		fmt.Printf("error reading dirnames: %v\n", err)
 		return -1
 	}
 	return len(list)
@@ -232,7 +232,7 @@ type mediaItemWrapper struct {
 func wrap(mi *photoslibrary.MediaItem, baseDestDir string, albumName string) *mediaItemWrapper {
 	t, err := time.Parse(time.RFC3339, mi.MediaMetadata.CreationTime)
 	if err != nil {
-		fmt.Printf("Error parsing timestamp %v for id %v", mi.MediaMetadata.CreationTime, mi.Id)
+		fmt.Printf("Error parsing timestamp %v for id %v\n", mi.MediaMetadata.CreationTime, mi.Id)
 	}
 	return &mediaItemWrapper{
 		src:          mi,
