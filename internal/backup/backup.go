@@ -82,7 +82,9 @@ func (bs *Session) StartAlbums() {
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				AlbumId: album.Id,
 			}
-			bs.Start(searchReq, filepath.Join("albums", album.Title))
+			albumPath := filepath.Join("albums", album.Title)
+			fmt.Printf("Backing up album to %v", albumPath)
+			bs.Start(searchReq, albumPath)
 		}
 		return nil
 	})
