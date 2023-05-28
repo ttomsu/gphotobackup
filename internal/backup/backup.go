@@ -66,7 +66,7 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
 			fmt.Printf("Adding %v items to queue\n", len(resp.MediaItems))
 
 			for _, item := range resp.MediaItems {
-				bs.queue <- wrap(item, bs.baseDestDir)
+				bs.queue <- wrap(item, bs.baseDestDir, "")
 			}
 			return nil
 		})
@@ -97,26 +97,25 @@ func (w *worker) start(queue <-chan *mediaItemWrapper) {
 	for {
 		select {
 		case miw := <-queue:
-			mi := miw.src
 			if viper.GetBool("verbose") {
-				fmt.Printf("Worker %v got %v of size %vw x %vh created at %v\n", w.id, mi.MimeType, mi.MediaMetadata.Width, mi.MediaMetadata.Height, mi.MediaMetadata.CreationTime)
+				fmt.Printf("Worker %v got %v of size %vw x %vh created at %v\n", w.id, miw.src.MimeType, miw.src.MediaMetadata.Width, miw.src.MediaMetadata.Height, miw.src.MediaMetadata.CreationTime)
 			}
 
 			err := w.ensureDestExists(miw)
 			if err != nil {
-				fmt.Printf("Error creating dest for %v, err: %v\n", mi.Filename, err)
+				fmt.Printf("Error creating dest for %v, err: %v\n", miw.src.Filename, err)
 				w.wg.Done()
 				continue
 			}
 			if !w.fileExists(miw.destFilepath()) {
-				data, err := w.fetchItem(mi)
+				data, err := w.fetchItem(miw)
 				if err != nil {
-					fmt.Printf("Error fetching %v, err: %v\n", mi.Filename, err)
+					fmt.Printf("Error fetching %v, err: %v\n", miw.src.Filename, err)
 					w.wg.Done()
 					continue
 				}
 				if err = w.writeItem(miw, data); err != nil {
-					fmt.Printf("Error writing %v, err: %v\n", mi.Filename, err)
+					fmt.Printf("Error writing %v, err: %v\n", miw.src.Filename, err)
 					w.wg.Done()
 					continue
 				}
@@ -146,20 +145,20 @@ func (w *worker) fileExists(destFilename string) bool {
 	return err == nil
 }
 
-func (w *worker) fetchItem(mi *photoslibrary.MediaItem) ([]byte, error) {
+func (w *worker) fetchItem(miw *mediaItemWrapper) ([]byte, error) {
 	var url string
 	switch {
-	case mi.MediaMetadata.Video != nil:
-		if mi.MediaMetadata.Video.Status != "READY" {
-			return []byte{}, errors.Errorf("video %v is not yet processed", mi.Filename)
+	case miw.src.MediaMetadata.Video != nil:
+		if miw.src.MediaMetadata.Video.Status != "READY" {
+			return []byte{}, errors.Errorf("video %v is not yet processed", miw.src.Filename)
 		}
-		url = fmt.Sprintf("%v=dv", mi.BaseUrl)
-	case mi.MediaMetadata.Photo != nil:
-		url = fmt.Sprintf("%v=d", mi.BaseUrl)
+		url = fmt.Sprintf("%v=dv", miw.src.BaseUrl)
+	case miw.src.MediaMetadata.Photo != nil:
+		url = fmt.Sprintf("%v=d", miw.src.BaseUrl)
 	}
 
 	if resp, err := w.client.Get(url); err != nil {
-		return []byte{}, errors.Wrapf(err, "error fetching data for %v", mi.Filename)
+		return []byte{}, errors.Wrapf(err, "error fetching data for %v", miw.src.Filename)
 	} else if resp.StatusCode != 200 {
 		body, _ := io.ReadAll(resp.Body)
 		return []byte{}, errors.Errorf("Non 200 status returned for URL %v, body: %v", url, string(body))
@@ -186,9 +185,10 @@ type mediaItemWrapper struct {
 	baseDestDir  string
 	creationTime time.Time
 	startTime    time.Time
+	albumName    string
 }
 
-func wrap(mi *photoslibrary.MediaItem, baseDestDir string) *mediaItemWrapper {
+func wrap(mi *photoslibrary.MediaItem, baseDestDir string, albumName string) *mediaItemWrapper {
 	t, err := time.Parse(time.RFC3339, mi.MediaMetadata.CreationTime)
 	if err != nil {
 		fmt.Printf("Error parsing timestamp %v for id %v", mi.MediaMetadata.CreationTime, mi.Id)
@@ -198,12 +198,15 @@ func wrap(mi *photoslibrary.MediaItem, baseDestDir string) *mediaItemWrapper {
 		baseDestDir:  baseDestDir,
 		creationTime: t,
 		startTime:    time.Now(),
+		albumName:    albumName,
 	}
 }
 
 func (miw *mediaItemWrapper) destDir() string {
 	dir := "unknown"
-	if !miw.creationTime.IsZero() {
+	if miw.albumName != "" {
+		dir = miw.albumName
+	} else if !miw.creationTime.IsZero() {
 		dir = miw.creationTime.Local().Format("2006/01/02")
 	}
 	return filepath.Join(miw.baseDestDir, dir)
