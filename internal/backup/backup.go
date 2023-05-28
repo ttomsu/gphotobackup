@@ -54,7 +54,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 	}, nil
 }
 
-func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
+func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, albumName string) {
 	for _, w := range bs.workers {
 		go w.start(bs.queue)
 	}
@@ -66,7 +66,7 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
 			fmt.Printf("Adding %v items to queue\n", len(resp.MediaItems))
 
 			for _, item := range resp.MediaItems {
-				bs.queue <- wrap(item, bs.baseDestDir, "")
+				bs.queue <- wrap(item, bs.baseDestDir, albumName)
 			}
 			return nil
 		})
@@ -74,6 +74,21 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
 		fmt.Printf("Search error: %v\n", err)
 	}
 	bs.wg.Wait()
+}
+
+func (bs *Session) StartAlbums() {
+	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
+		for _, album := range resp.Albums {
+			searchReq := &photoslibrary.SearchMediaItemsRequest{
+				AlbumId: album.Id,
+			}
+			bs.Start(searchReq, filepath.Join("albums", album.Title))
+		}
+		return nil
+	})
+	if err != nil {
+		fmt.Printf("Albums error: %v\n", err)
+	}
 }
 
 func (bs *Session) Stop() {

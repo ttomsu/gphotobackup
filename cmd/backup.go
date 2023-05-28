@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"time"
+
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/ttomsu/gphotobackup/internal"
 	"github.com/ttomsu/gphotobackup/internal/backup"
-	"time"
 )
 
 func init() {
@@ -15,6 +16,8 @@ func init() {
 
 	backupCmd.Flags().String("albumID", "", "")
 	_ = viper.BindPFlag("albumID", backupCmd.Flags().Lookup("albumID"))
+	backupCmd.Flags().Bool("albums", false, "Backup albums too")
+	_ = viper.BindPFlag("albums", backupCmd.Flags().Lookup("albums"))
 	backupCmd.Flags().Int("sinceDays", 0, "")
 	_ = viper.BindPFlag("sinceDays", backupCmd.Flags().Lookup("sinceDays"))
 	backupCmd.Flags().String("start", "", "")
@@ -107,7 +110,12 @@ var backupCmd = &cobra.Command{
 			return errors.New("Must specify either --albumID, --sinceDays or --start[/--end]")
 		}
 
-		bs.Start(searchReq)
+		bs.Start(searchReq, "")
+
+		if viper.GetBool("albums") {
+			bs.StartAlbums()
+		}
+
 		return nil
 	},
 }
