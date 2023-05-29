@@ -151,6 +151,7 @@ func (bs *Session) Stop() {
 }
 
 func (bs *Session) countFiles(dir string) int {
+	bs.existingFilenames = make(map[string]bool, 1)
 	fullDir := filepath.Join(bs.baseDestDir, dir)
 	f, err := os.Open(fullDir)
 	if err != nil {
