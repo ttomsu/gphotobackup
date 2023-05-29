@@ -66,7 +66,7 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 	for _, w := range bs.workers {
 		go w.start(bs.queue)
 	}
-	defer bs.Stop()
+	defer bs.Stop(destDirName)
 
 	err := bs.svc.MediaItems.Search(searchReq).
 		Pages(context.Background(), func(resp *photoslibrary.SearchMediaItemsResponse) error {
@@ -94,12 +94,12 @@ func (bs *Session) StartAlbums() {
 			albumPath := filepath.Join("albums", escapeAlbumTitle(album.Title))
 			existingCount := bs.countFiles(albumPath)
 
-			fmt.Printf("Album count: %v, dir count: %v\n", album.TotalMediaItems, existingCount)
 			if existingCount == int(album.TotalMediaItems) {
 				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", albumPath, existingCount)
 				continue
 			}
 
+			fmt.Printf("Album count: %v, dir count: %v\n", album.TotalMediaItems, existingCount)
 			fmt.Printf("Backing up %v items from album to %v\n", album.TotalMediaItems, albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				PageSize: 100,
@@ -129,7 +129,7 @@ func (bs *Session) StartFavorites() {
 	bs.Start(searchReq, "favorites")
 }
 
-func (bs *Session) Stop() {
+func (bs *Session) Stop(destDir string) {
 	bs.wg.Add(len(bs.workers))
 	for _, w := range bs.workers {
 		w.stop <- true
@@ -137,6 +137,7 @@ func (bs *Session) Stop() {
 	bs.wg.Wait()
 
 	if bs.existingFilenames != nil {
+		fmt.Printf("Checking filenames for %v", destDir)
 		close(bs.filenameChan)
 		for name := range bs.filenameChan {
 			if _, ok := bs.existingFilenames[name]; ok {
