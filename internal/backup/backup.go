@@ -329,7 +329,7 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 		}
 		filename = fmt.Sprintf("%v-%v.%v", parts[0], id, parts[1])
 	} else {
-		filename = miw.src.Filename
+		filename = sanitize(miw.src.Filename)
 	}
 	return filename
 }

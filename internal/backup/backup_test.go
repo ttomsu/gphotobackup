@@ -18,6 +18,7 @@ func TestFilename(t *testing.T) {
 		{input: "foobar.mo.jpg", want: "foobar_mo-id012345678901234567890123456789id.jpg"},
 		{input: "1/2/2023 - foobar.jpg", want: "1_2_2023___foobar-id012345678901234567890123456789id.jpg"},
 		{input: "some~special!chars@.jpg", want: "some_special_chars_-id012345678901234567890123456789id.jpg"},
+		{input: "no-extension/onfile", want: "no_extension_onfile"},
 	}
 
 	for i, tc := range tests {
