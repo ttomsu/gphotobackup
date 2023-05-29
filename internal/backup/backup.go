@@ -137,7 +137,7 @@ func (bs *Session) Stop(destDir string) {
 	bs.wg.Wait()
 
 	if bs.existingFilenames != nil {
-		fmt.Printf("Checking filenames for %v", destDir)
+		fmt.Printf("Checking filenames for %v\n", destDir)
 		close(bs.filenameChan)
 		for name := range bs.filenameChan {
 			if _, ok := bs.existingFilenames[name]; ok {
@@ -313,7 +313,7 @@ func (miw *mediaItemWrapper) shortDestFilepath() string {
 }
 
 func (miw *mediaItemWrapper) filename(short bool) string {
-	parts := strings.Split(miw.src.Filename, ".")
+	parts := strings.Split(strings.ReplaceAll(miw.src.Filename, "/", "_"), ".")
 	var filename string
 	if len(parts) == 2 {
 		id := miw.src.Id
