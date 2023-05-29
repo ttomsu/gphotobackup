@@ -111,6 +111,7 @@ func (bs *Session) StartFavorites() {
 			},
 		},
 	}
+	fmt.Println("Starting to back up favorites")
 	bs.Start(searchReq, "favorites")
 }
 
