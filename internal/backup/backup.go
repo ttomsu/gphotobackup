@@ -323,10 +323,9 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 	var filename string
 	if lastDotIndex > 0 {
 		parts := []string{
-			miw.src.Filename[0:lastDotIndex],
-			miw.src.Filename[lastDotIndex+1 : len(miw.src.Filename)-1],
+			sanitize(miw.src.Filename[0:lastDotIndex]),
+			miw.src.Filename[lastDotIndex+1 : len(miw.src.Filename)],
 		}
-		parts[0] = strings.ReplaceAll(parts[0], "/", "_")
 		id := miw.src.Id
 		if short && len(id) > 8 {
 			id = fmt.Sprintf("...%v", id[len(id)-9:len(id)-1])
