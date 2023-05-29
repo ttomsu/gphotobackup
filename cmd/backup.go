@@ -49,7 +49,7 @@ var backupCmd = &cobra.Command{
 		}
 
 		searchReq := &photoslibrary.SearchMediaItemsRequest{
-			PageSize: 500,
+			PageSize: 100,
 		}
 		switch {
 		case viper.GetString("albumID") != "":

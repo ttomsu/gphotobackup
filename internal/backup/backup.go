@@ -47,7 +47,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 
 	return &Session{
 		svc:         svc,
-		queue:       make(chan *mediaItemWrapper, 500),
+		queue:       make(chan *mediaItemWrapper, 100),
 		wg:          wg,
 		baseDestDir: baseDestDir,
 		workers:     workers,
@@ -90,7 +90,7 @@ func (bs *Session) StartAlbums() {
 
 			fmt.Printf("Backing up %v items from album to %v\n", existingCount, albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
-				PageSize: 500,
+				PageSize: 100,
 				AlbumId:  album.Id,
 			}
 			bs.Start(searchReq, albumPath)
@@ -104,7 +104,7 @@ func (bs *Session) StartAlbums() {
 
 func (bs *Session) StartFavorites() {
 	searchReq := &photoslibrary.SearchMediaItemsRequest{
-		PageSize: 500,
+		PageSize: 100,
 		Filters: &photoslibrary.Filters{
 			FeatureFilter: &photoslibrary.FeatureFilter{
 				IncludedFeatures: []string{
