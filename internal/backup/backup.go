@@ -58,7 +58,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 		wg:           wg,
 		baseDestDir:  baseDestDir,
 		workers:      workers,
-		filenameChan: make(chan string),
+		filenameChan: make(chan string, 40000),
 	}, nil
 }
 
