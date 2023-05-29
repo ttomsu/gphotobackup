@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -14,6 +15,10 @@ import (
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+)
+
+var (
+	specialChars = regexp.MustCompile(`[^\w]`)
 )
 
 type Session struct {
@@ -84,12 +89,12 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 func (bs *Session) StartAlbums() {
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
-			albumPath := filepath.Join("albums", album.Title)
+			albumPath := filepath.Join("albums", escapeAlbumTitle(album.Title))
 			existingCount := bs.countFiles(albumPath)
 
 			fmt.Printf("Album count: %v, dir count: %v\n", album.TotalMediaItems, existingCount)
 			if existingCount == int(album.TotalMediaItems) {
-				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", album.Title, existingCount)
+				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", albumPath, existingCount)
 				continue
 			}
 
@@ -314,4 +319,8 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 		filename = miw.src.Filename
 	}
 	return filename
+}
+
+func escapeAlbumTitle(t string) string {
+	return specialChars.ReplaceAllString(t, "_")
 }
