@@ -114,7 +114,7 @@ var backupCmd = &cobra.Command{
 			return errors.New("Must specify either --albumID, --sinceDays or --start[/--end]")
 		}
 
-		bs.Start(searchReq, "")
+		bs.Start(searchReq)
 
 		if viper.GetBool("favorites") {
 			bs.StartFavorites()

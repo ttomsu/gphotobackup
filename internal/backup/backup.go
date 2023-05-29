@@ -18,17 +18,17 @@ import (
 )
 
 var (
-	specialChars = regexp.MustCompile(`[^\w]`)
+	specialChars = regexp.MustCompile(`\W`)
 )
 
 type Session struct {
-	svc               *photoslibrary.Service
-	queue             chan *mediaItemWrapper
-	wg                *sync.WaitGroup
-	baseDestDir       string
-	workers           []*worker
-	existingFilenames map[string]bool
-	filenameChan      chan string
+	svc         *photoslibrary.Service
+	queue       chan *mediaItemWrapper
+	wg          *sync.WaitGroup
+	baseDestDir string
+	workers     []*worker
+	//existingFilenames map[string]bool
+	//filenameChan      chan string
 }
 
 func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Session, error) {
@@ -53,20 +53,24 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 	}
 
 	return &Session{
-		svc:          svc,
-		queue:        make(chan *mediaItemWrapper, 100),
-		wg:           wg,
-		baseDestDir:  baseDestDir,
-		workers:      workers,
-		filenameChan: make(chan string, 40000),
+		svc:         svc,
+		queue:       make(chan *mediaItemWrapper, 100),
+		wg:          wg,
+		baseDestDir: baseDestDir,
+		workers:     workers,
+		//filenameChan: make(chan string, 40000),
 	}, nil
 }
 
-func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destDirName string) {
+func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
+	bs.startInternal(searchReq, "", nil)
+}
+
+func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsRequest, destDir string, existingFiles map[string]bool) {
 	for _, w := range bs.workers {
 		go w.start(bs.queue)
 	}
-	defer bs.Stop(destDirName)
+	defer bs.Stop()
 
 	totalCount := 0
 	err := bs.svc.MediaItems.Search(searchReq).
@@ -77,11 +81,20 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 			fmt.Printf("Adding %v items to queue (%v)\n", count, totalCount)
 
 			for _, item := range resp.MediaItems {
-				miw := wrap(item, bs.baseDestDir, destDirName)
-				bs.queue <- miw
-				if bs.existingFilenames != nil {
-					bs.filenameChan <- miw.filename(false)
+				miw := wrap(item, bs.baseDestDir, destDir)
+				if existingFiles != nil {
+					fullFilename := miw.filename(false)
+					dupValue, ok := existingFiles[fullFilename]
+					if !ok {
+						fmt.Printf("Backup missing file %v\n", fullFilename)
+					}
+					if dupValue {
+						fmt.Printf("Duplicate found, filename: %v\n", fullFilename)
+					} else {
+						existingFiles[fullFilename] = true
+					}
 				}
+				bs.queue <- miw
 			}
 			return nil
 		})
@@ -94,21 +107,27 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 func (bs *Session) StartAlbums() {
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
-			albumPath := filepath.Join("albums", escapeAlbumTitle(album.Title))
-			existingCount := bs.countFiles(albumPath)
+			albumPath := filepath.Join("albums", sanitizeAlbumTitle(album.Title))
+			existingFiles := bs.existingFiles(albumPath)
 
-			if existingCount == int(album.TotalMediaItems) {
-				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", albumPath, existingCount)
+			if len(existingFiles) == int(album.TotalMediaItems) {
+				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", albumPath, len(existingFiles))
 				continue
 			}
 
-			fmt.Printf("Album count: %v, dir count: %v\n", album.TotalMediaItems, existingCount)
+			fmt.Printf("GPhotos count: %v, backup count: %v\n", album.TotalMediaItems, len(existingFiles))
 			fmt.Printf("Backing up %v items from album to %v\n", album.TotalMediaItems, albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				PageSize: 100,
 				AlbumId:  album.Id,
 			}
-			bs.Start(searchReq, albumPath)
+			bs.startInternal(searchReq, albumPath, existingFiles)
+
+			for filename, inAlbum := range existingFiles {
+				if !inAlbum {
+					fmt.Printf("Extra file found: %v\n", filepath.Join(albumPath, filename))
+				}
+			}
 		}
 		return nil
 	})
@@ -118,6 +137,8 @@ func (bs *Session) StartAlbums() {
 }
 
 func (bs *Session) StartFavorites() {
+	dirName := "favorites"
+	existingFiles := bs.existingFiles(dirName)
 	searchReq := &photoslibrary.SearchMediaItemsRequest{
 		PageSize: 100,
 		Filters: &photoslibrary.Filters{
@@ -129,54 +150,36 @@ func (bs *Session) StartFavorites() {
 		},
 	}
 	fmt.Println("Starting to back up favorites")
-	bs.Start(searchReq, "favorites")
+	bs.startInternal(searchReq, dirName, existingFiles)
 }
 
-func (bs *Session) Stop(destDir string) {
+func (bs *Session) Stop() {
 	bs.wg.Add(len(bs.workers))
 	for _, w := range bs.workers {
 		w.stop <- true
 	}
 	bs.wg.Wait()
-
-	if bs.existingFilenames != nil {
-		fmt.Printf("Checking filenames for %v\n", destDir)
-		close(bs.filenameChan)
-		for name := range bs.filenameChan {
-			if _, ok := bs.existingFilenames[name]; ok {
-				bs.existingFilenames[name] = true
-			} else {
-				fmt.Printf("Backup copy missing: %v\n", name)
-			}
-		}
-		for k, v := range bs.existingFilenames {
-			if !v {
-				fmt.Printf("Extra backup file found: %v\n", k)
-			}
-		}
-		bs.filenameChan = make(chan string, 40000)
-	}
 }
 
-func (bs *Session) countFiles(dir string) int {
-	bs.existingFilenames = nil
+func (bs *Session) existingFiles(dir string) map[string]bool {
+	m := make(map[string]bool)
 	fullDir := filepath.Join(bs.baseDestDir, dir)
 	f, err := os.Open(fullDir)
 	if err != nil {
 		fmt.Printf("error opening fullDir %v to count: %v\n", fullDir, err)
-		return -1
+		return m
 	}
 	list, err := f.Readdirnames(-1)
 	f.Close()
 	if err != nil {
 		fmt.Printf("error reading dirnames: %v\n", err)
-		return -1
+		return m
 	}
-	bs.existingFilenames = make(map[string]bool, len(list))
+	m = make(map[string]bool, len(list))
 	for _, filename := range list {
-		bs.existingFilenames[filename] = false
+		m[filename] = false
 	}
-	return len(list)
+	return m
 }
 
 type worker struct {
@@ -330,6 +333,6 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 	return filename
 }
 
-func escapeAlbumTitle(t string) string {
+func sanitizeAlbumTitle(t string) string {
 	return specialChars.ReplaceAllString(t, "_")
 }
