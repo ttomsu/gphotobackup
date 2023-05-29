@@ -75,8 +75,10 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 
 			for _, item := range resp.MediaItems {
 				miw := wrap(item, bs.baseDestDir, destDirName)
-				bs.filenameChan <- miw.filename(false)
 				bs.queue <- miw
+				if bs.existingFilenames != nil {
+					bs.filenameChan <- miw.filename(false)
+				}
 			}
 			return nil
 		})
@@ -151,7 +153,7 @@ func (bs *Session) Stop() {
 }
 
 func (bs *Session) countFiles(dir string) int {
-	bs.existingFilenames = make(map[string]bool, 1)
+	bs.existingFilenames = nil
 	fullDir := filepath.Join(bs.baseDestDir, dir)
 	f, err := os.Open(fullDir)
 	if err != nil {
