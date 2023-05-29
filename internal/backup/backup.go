@@ -107,7 +107,7 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 func (bs *Session) StartAlbums() {
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
-			albumPath := filepath.Join("albums", sanitizeAlbumTitle(album.Title))
+			albumPath := filepath.Join("albums", sanitize(album.Title))
 			existingFiles := bs.existingFiles(albumPath)
 
 			if len(existingFiles) == int(album.TotalMediaItems) {
@@ -319,9 +319,14 @@ func (miw *mediaItemWrapper) shortDestFilepath() string {
 }
 
 func (miw *mediaItemWrapper) filename(short bool) string {
-	parts := strings.Split(strings.ReplaceAll(miw.src.Filename, "/", "_"), ".")
+	lastDotIndex := strings.LastIndex(miw.src.Filename, ".")
 	var filename string
-	if len(parts) == 2 {
+	if lastDotIndex > 0 {
+		parts := []string{
+			miw.src.Filename[0:lastDotIndex],
+			miw.src.Filename[lastDotIndex+1 : len(miw.src.Filename)-1],
+		}
+		parts[0] = strings.ReplaceAll(parts[0], "/", "_")
 		id := miw.src.Id
 		if short && len(id) > 8 {
 			id = fmt.Sprintf("...%v", id[len(id)-9:len(id)-1])
@@ -333,6 +338,6 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 	return filename
 }
 
-func sanitizeAlbumTitle(t string) string {
+func sanitize(t string) string {
 	return specialChars.ReplaceAllString(t, "_")
 }
