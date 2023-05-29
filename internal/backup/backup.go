@@ -216,7 +216,7 @@ func (w *worker) start(queue <-chan *mediaItemWrapper) {
 				}
 			} else {
 				if viper.GetBool("verbose") {
-					fmt.Printf("%v already exists\n", miw.shortDestFilepath())
+					fmt.Printf("%v already exists\n", miw.destFilepathShort())
 				}
 			}
 			w.wg.Done()
@@ -264,7 +264,7 @@ func (w *worker) fetchItem(miw *mediaItemWrapper) ([]byte, error) {
 
 func (w *worker) writeItem(miw *mediaItemWrapper, data []byte) error {
 	defer func() {
-		fmt.Printf("Worker %v finished %v in %v\n", w.id, miw.shortDestFilepath(), time.Since(miw.startTime))
+		fmt.Printf("Worker %v finished %v in %v\n", w.id, miw.destFilepathShort(), time.Since(miw.startTime))
 	}()
 	if err := os.WriteFile(miw.destFilepath(), data, 0644); err != nil {
 		return errors.Wrapf(err, "writing item %v", miw.src.Id)
@@ -311,7 +311,7 @@ func (miw *mediaItemWrapper) destFilepath() string {
 	return filepath.Join(miw.destDir(), miw.filename(false))
 }
 
-func (miw *mediaItemWrapper) shortDestFilepath() string {
+func (miw *mediaItemWrapper) destFilepathShort() string {
 	return filepath.Join(miw.destDir(), miw.filename(true))
 }
 
