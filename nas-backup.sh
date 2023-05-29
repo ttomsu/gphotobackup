@@ -56,7 +56,7 @@ parse_params() {
 parse_params "$@"
 
 BIN_DIR=$(dirname "${args[0]}")
-BIN=args[0]
+BIN="${args[0]}"
 
 if [[ -f "$BIN" ]]; then
  echo "Removing old binary"
