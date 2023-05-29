@@ -84,11 +84,8 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 				miw := wrap(item, bs.baseDestDir, destDir)
 				if existingFiles != nil {
 					fullFilename := miw.filename(false)
-					dupValue, ok := existingFiles[fullFilename]
-					if !ok {
-						fmt.Printf("Backup missing file %v\n", fullFilename)
-					}
-					if dupValue {
+					isDup, _ := existingFiles[fullFilename]
+					if isDup {
 						fmt.Printf("Duplicate found, filename: %v\n", fullFilename)
 					} else {
 						existingFiles[fullFilename] = true
