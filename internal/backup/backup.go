@@ -137,6 +137,7 @@ func (bs *Session) Stop() {
 	bs.wg.Wait()
 
 	if bs.existingFilenames != nil {
+		close(bs.filenameChan)
 		for name := range bs.filenameChan {
 			if _, ok := bs.existingFilenames[name]; ok {
 				bs.existingFilenames[name] = true
@@ -149,6 +150,7 @@ func (bs *Session) Stop() {
 				fmt.Printf("Extra backup file found: %v\n", k)
 			}
 		}
+		bs.filenameChan = make(chan string, 40000)
 	}
 }
 
