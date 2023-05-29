@@ -68,10 +68,13 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 	}
 	defer bs.Stop(destDirName)
 
+	totalCount := 0
 	err := bs.svc.MediaItems.Search(searchReq).
 		Pages(context.Background(), func(resp *photoslibrary.SearchMediaItemsResponse) error {
-			bs.wg.Add(len(resp.MediaItems))
-			fmt.Printf("Adding %v items to queue\n", len(resp.MediaItems))
+			count := len(resp.MediaItems)
+			bs.wg.Add(count)
+			totalCount = totalCount + count
+			fmt.Printf("Adding %v items to queue (%v)\n", count, totalCount)
 
 			for _, item := range resp.MediaItems {
 				miw := wrap(item, bs.baseDestDir, destDirName)
@@ -207,7 +210,7 @@ func (w *worker) start(queue <-chan *mediaItemWrapper) {
 					continue
 				}
 				if err = w.writeItem(miw, data); err != nil {
-					fmt.Printf("Error writing %v, err: %v\n", miw.src.Filename, err)
+					fmt.Printf("Error writing %v, err: %v\n", miw.destFilepath(), err)
 					w.wg.Done()
 					continue
 				}
