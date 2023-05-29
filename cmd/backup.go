@@ -48,7 +48,9 @@ var backupCmd = &cobra.Command{
 			return errors.Wrapf(err, "new session")
 		}
 
-		searchReq := &photoslibrary.SearchMediaItemsRequest{}
+		searchReq := &photoslibrary.SearchMediaItemsRequest{
+			PageSize: 500,
+		}
 		switch {
 		case viper.GetString("albumID") != "":
 			searchReq.AlbumId = viper.GetString("albumID")
