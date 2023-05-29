@@ -114,12 +114,12 @@ var backupCmd = &cobra.Command{
 
 		bs.Start(searchReq, "")
 
-		if viper.GetBool("albums") {
-			bs.StartAlbums()
-		}
-
 		if viper.GetBool("favorites") {
 			bs.StartFavorites()
+		}
+
+		if viper.GetBool("albums") {
+			bs.StartAlbums()
 		}
 
 		return nil
