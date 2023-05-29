@@ -59,15 +59,15 @@ BIN_DIR=$(dirname "${args[0]}")
 BIN="${args[0]}"
 
 if [[ -f "$BIN" ]]; then
- echo "Removing old binary"
+ msg "Removing old binary"
  rm $BIN
 fi
 
 RUNID=`gh run list --repo ttomsu/gphotobackup --workflow go.yml --limit 1 --json databaseId --jq .[0].databaseId`
-echo "Downloading binary from run ID $RUNID"
+msg "Downloading binary from run ID $RUNID"
 gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --dir $BIN_DIR
 
-echo "Starting gphotobackup"
+msg "Starting gphotobackup"
 $BIN backup \
 --sinceDays 21 \
 --albums \
