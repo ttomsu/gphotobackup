@@ -11,6 +11,8 @@ require (
 	golang.org/x/oauth2 v0.5.0
 )
 
+replace github.com/gphotosuploader/googlemirror v0.5.0 => github.com/ttomsu/googlemirror v0.6.0
+
 require (
 	cloud.google.com/go/compute v1.14.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect

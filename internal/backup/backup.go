@@ -54,7 +54,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 	}, nil
 }
 
-func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, albumName string) {
+func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destDirName string) {
 	for _, w := range bs.workers {
 		go w.start(bs.queue)
 	}
@@ -66,7 +66,7 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, album
 			fmt.Printf("Adding %v items to queue\n", len(resp.MediaItems))
 
 			for _, item := range resp.MediaItems {
-				bs.queue <- wrap(item, bs.baseDestDir, albumName)
+				bs.queue <- wrap(item, bs.baseDestDir, destDirName)
 			}
 			return nil
 		})
@@ -99,6 +99,19 @@ func (bs *Session) StartAlbums() {
 	if err != nil {
 		fmt.Printf("Albums error: %v\n", err)
 	}
+}
+
+func (bs *Session) StartFavorites() {
+	searchReq := &photoslibrary.SearchMediaItemsRequest{
+		Filters: &photoslibrary.Filters{
+			FeatureFilter: &photoslibrary.FeatureFilter{
+				IncludedFeatures: []string{
+					"FAVORITES",
+				},
+			},
+		},
+	}
+	bs.Start(searchReq, "favorites")
 }
 
 func (bs *Session) Stop() {
@@ -226,10 +239,10 @@ type mediaItemWrapper struct {
 	baseDestDir  string
 	creationTime time.Time
 	startTime    time.Time
-	albumName    string
+	destDirName  string
 }
 
-func wrap(mi *photoslibrary.MediaItem, baseDestDir string, albumName string) *mediaItemWrapper {
+func wrap(mi *photoslibrary.MediaItem, baseDestDir string, destDirName string) *mediaItemWrapper {
 	t, err := time.Parse(time.RFC3339, mi.MediaMetadata.CreationTime)
 	if err != nil {
 		fmt.Printf("Error parsing timestamp %v for id %v\n", mi.MediaMetadata.CreationTime, mi.Id)
@@ -239,14 +252,14 @@ func wrap(mi *photoslibrary.MediaItem, baseDestDir string, albumName string) *me
 		baseDestDir:  baseDestDir,
 		creationTime: t,
 		startTime:    time.Now(),
-		albumName:    albumName,
+		destDirName:  destDirName,
 	}
 }
 
 func (miw *mediaItemWrapper) destDir() string {
 	dir := "unknown"
-	if miw.albumName != "" {
-		dir = miw.albumName
+	if miw.destDirName != "" {
+		dir = miw.destDirName
 	} else if !miw.creationTime.IsZero() {
 		dir = miw.creationTime.Local().Format("2006/01/02")
 	}

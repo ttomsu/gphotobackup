@@ -18,6 +18,8 @@ func init() {
 	_ = viper.BindPFlag("albumID", backupCmd.Flags().Lookup("albumID"))
 	backupCmd.Flags().Bool("albums", false, "Backup albums too")
 	_ = viper.BindPFlag("albums", backupCmd.Flags().Lookup("albums"))
+	backupCmd.Flags().Bool("favorites", false, "Backup favorites too")
+	_ = viper.BindPFlag("favorites", backupCmd.Flags().Lookup("favorites"))
 	backupCmd.Flags().Int("sinceDays", 0, "")
 	_ = viper.BindPFlag("sinceDays", backupCmd.Flags().Lookup("sinceDays"))
 	backupCmd.Flags().String("start", "", "")
@@ -114,6 +116,10 @@ var backupCmd = &cobra.Command{
 
 		if viper.GetBool("albums") {
 			bs.StartAlbums()
+		}
+
+		if viper.GetBool("favorites") {
+			bs.StartFavorites()
 		}
 
 		return nil
