@@ -17,11 +17,13 @@ import (
 )
 
 type Session struct {
-	svc         *photoslibrary.Service
-	queue       chan *mediaItemWrapper
-	wg          *sync.WaitGroup
-	baseDestDir string
-	workers     []*worker
+	svc               *photoslibrary.Service
+	queue             chan *mediaItemWrapper
+	wg                *sync.WaitGroup
+	baseDestDir       string
+	workers           []*worker
+	existingFilenames map[string]bool
+	filenameChan      chan string
 }
 
 func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Session, error) {
@@ -46,11 +48,12 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 	}
 
 	return &Session{
-		svc:         svc,
-		queue:       make(chan *mediaItemWrapper, 100),
-		wg:          wg,
-		baseDestDir: baseDestDir,
-		workers:     workers,
+		svc:          svc,
+		queue:        make(chan *mediaItemWrapper, 100),
+		wg:           wg,
+		baseDestDir:  baseDestDir,
+		workers:      workers,
+		filenameChan: make(chan string),
 	}, nil
 }
 
@@ -66,7 +69,9 @@ func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest, destD
 			fmt.Printf("Adding %v items to queue\n", len(resp.MediaItems))
 
 			for _, item := range resp.MediaItems {
-				bs.queue <- wrap(item, bs.baseDestDir, destDirName)
+				miw := wrap(item, bs.baseDestDir, destDirName)
+				bs.filenameChan <- miw.filename(false)
+				bs.queue <- miw
 			}
 			return nil
 		})
@@ -84,11 +89,11 @@ func (bs *Session) StartAlbums() {
 
 			fmt.Printf("Album count: %v, dir count: %v\n", album.TotalMediaItems, existingCount)
 			if existingCount == int(album.TotalMediaItems) {
-				fmt.Printf("Album %v already contains %v items, skipping\n", album.Title, existingCount)
+				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", album.Title, existingCount)
 				continue
 			}
 
-			fmt.Printf("Backing up %v items from album to %v\n", existingCount, albumPath)
+			fmt.Printf("Backing up %v items from album to %v\n", album.TotalMediaItems, albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				PageSize: 100,
 				AlbumId:  album.Id,
@@ -123,6 +128,21 @@ func (bs *Session) Stop() {
 		w.stop <- true
 	}
 	bs.wg.Wait()
+
+	if bs.existingFilenames != nil {
+		for name := range bs.filenameChan {
+			if _, ok := bs.existingFilenames[name]; ok {
+				bs.existingFilenames[name] = true
+			} else {
+				fmt.Printf("Backup copy missing: %v\n", name)
+			}
+		}
+		for k, v := range bs.existingFilenames {
+			if !v {
+				fmt.Printf("Extra backup file found: %v\n", k)
+			}
+		}
+	}
 }
 
 func (bs *Session) countFiles(dir string) int {
@@ -137,6 +157,10 @@ func (bs *Session) countFiles(dir string) int {
 	if err != nil {
 		fmt.Printf("error reading dirnames: %v\n", err)
 		return -1
+	}
+	bs.existingFilenames = make(map[string]bool, len(list))
+	for _, filename := range list {
+		bs.existingFilenames[filename] = false
 	}
 	return len(list)
 }
