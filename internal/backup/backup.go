@@ -48,6 +48,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int, logger
 		}
 	}
 
+	logger.Infoln("Starting new backup session...")
 	return &Session{
 		svc:         svc,
 		queue:       make(chan *mediaItemWrapper, 100),
