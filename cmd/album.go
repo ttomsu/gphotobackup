@@ -17,7 +17,7 @@ func init() {
 	albumCmd.PersistentFlags().String("id", "", "Album ID")
 	albumCmd.MarkFlagRequired("id")
 
-	_ = viper.BindPFlags(albumCmd.PersistentFlags())
+	checkError(viper.BindPFlags(albumCmd.PersistentFlags()))
 }
 
 var albumCmd = &cobra.Command{

@@ -25,7 +25,7 @@ func init() {
 	backupCmd.PersistentFlags().Int("workers", 3, "Concurrent download workers")
 	backupCmd.PersistentFlags().Bool("verbose", true, "Emit details of all media items")
 
-	viper.BindPFlags(backupCmd.PersistentFlags())
+	checkError(viper.BindPFlags(backupCmd.PersistentFlags()))
 }
 
 var backupCmd = &cobra.Command{

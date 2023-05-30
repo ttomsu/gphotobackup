@@ -58,3 +58,9 @@ func initConfig() {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }
+
+func checkError(err error) {
+	if err != nil {
+		fmt.Printf("Flag error: %v\n", err)
+	}
+}

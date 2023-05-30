@@ -15,7 +15,7 @@ func init() {
 
 	itemCmd.PersistentFlags().String("id", "", "Item ID")
 	itemCmd.MarkFlagRequired("id")
-	_ = viper.BindPFlags(itemCmd.PersistentFlags())
+	checkError(viper.BindPFlags(itemCmd.PersistentFlags()))
 }
 
 var itemCmd = &cobra.Command{

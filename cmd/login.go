@@ -26,7 +26,7 @@ func init() {
 
 	loginCmd.PersistentFlags().Bool("browser", true, "Use a local browser to obtain user consent.")
 
-	_ = viper.BindPFlags(loginCmd.PersistentFlags())
+	checkError(viper.BindPFlags(loginCmd.PersistentFlags()))
 }
 
 // loginCmd represents the login command

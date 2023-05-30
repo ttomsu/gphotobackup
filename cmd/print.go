@@ -21,8 +21,7 @@ func init() {
 	rootCmd.AddCommand(printCmd)
 
 	printCmd.PersistentFlags().String("out", "", "")
-	_ = viper.BindPFlags(printCmd.PersistentFlags())
-	//_ = viper.BindPFlag("out", printCmd.PersistentFlags().Lookup("out"))
+	checkError(viper.BindPFlags(printCmd.PersistentFlags()))
 }
 
 // printCmd represents the print command
