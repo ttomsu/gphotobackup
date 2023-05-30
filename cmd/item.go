@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -13,7 +12,6 @@ import (
 func init() {
 	printCmd.AddCommand(itemCmd)
 
-	itemCmd.PersistentFlags().String("id", "", "Item ID")
 	itemCmd.MarkFlagRequired("id")
 	checkError(viper.BindPFlags(itemCmd.PersistentFlags()))
 }
@@ -21,6 +19,7 @@ func init() {
 var itemCmd = &cobra.Command{
 	Use: "item",
 	RunE: func(_ *cobra.Command, args []string) error {
+		logger := NewLogger()
 		client, err := internal.NewClient()
 		if err != nil {
 			return errors.Wrapf(err, "new client")
@@ -37,7 +36,7 @@ var itemCmd = &cobra.Command{
 		}
 
 		itemJSON, _ := json.MarshalIndent(item, "", "\t")
-		fmt.Printf("Item found: %v\n", string(itemJSON))
+		logger.Infof("Item found: %v", string(itemJSON))
 
 		return nil
 	},

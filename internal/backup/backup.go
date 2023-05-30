@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ttomsu/gphotobackup/internal/utils"
+	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"os"
@@ -23,9 +24,10 @@ type Session struct {
 	wg          *sync.WaitGroup
 	baseDestDir string
 	workers     []*worker
+	logger      *zap.SugaredLogger
 }
 
-func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Session, error) {
+func NewSession(client *http.Client, baseDestDir string, workerCount int, logger *zap.SugaredLogger) (*Session, error) {
 	svc, err := photoslibrary.New(client)
 	if err != nil {
 		return nil, err
@@ -42,6 +44,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 			wg:     wg,
 			mu:     mu,
 			client: client,
+			logger: logger,
 		}
 	}
 
@@ -51,7 +54,6 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 		wg:          wg,
 		baseDestDir: baseDestDir,
 		workers:     workers,
-		//filenameChan: make(chan string, 40000),
 	}, nil
 }
 
@@ -71,15 +73,15 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 			count := len(resp.MediaItems)
 			bs.wg.Add(count)
 			totalCount = totalCount + count
-			fmt.Printf("Adding %v items to queue (%v)\n", count, totalCount)
+			bs.logger.Infof("Adding %v items to queue (%v)", count, totalCount)
 
 			for _, item := range resp.MediaItems {
-				miw := wrap(item, bs.baseDestDir, destDir)
+				miw := bs.wrap(item, destDir)
 				if existingFiles != nil {
 					fullFilename := miw.filename(false)
 					isDup, _ := existingFiles[fullFilename]
 					if isDup {
-						fmt.Printf("Duplicate found, filename: %v\n", fullFilename)
+						bs.logger.Warnf("Duplicate found, filename: %v", fullFilename)
 					} else {
 						existingFiles[fullFilename] = true
 					}
@@ -89,7 +91,7 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 			return nil
 		})
 	if err != nil {
-		fmt.Printf("Search error: %v\n", err)
+		bs.logger.Errorf("Search error: %v", err)
 	}
 	bs.wg.Wait()
 }
@@ -101,12 +103,11 @@ func (bs *Session) StartAlbums() {
 			existingFiles := bs.existingFiles(albumPath)
 
 			if len(existingFiles) == int(album.TotalMediaItems) {
-				fmt.Printf("Album \"%v\" already contains %v items, skipping\n", albumPath, len(existingFiles))
+				bs.logger.Infof("Album \"%v\" already contains %v items, skipping", albumPath, len(existingFiles))
 				continue
 			}
 
-			fmt.Printf("GPhotos count: %v, backup count: %v\n", album.TotalMediaItems, len(existingFiles))
-			fmt.Printf("Backing up %v items from album to %v\n", album.TotalMediaItems, albumPath)
+			bs.logger.Infof("Backing up %v items (have %v) from album to %v", album.TotalMediaItems, len(existingFiles), albumPath)
 			searchReq := &photoslibrary.SearchMediaItemsRequest{
 				PageSize: 100,
 				AlbumId:  album.Id,
@@ -115,14 +116,14 @@ func (bs *Session) StartAlbums() {
 
 			for filename, inAlbum := range existingFiles {
 				if !inAlbum {
-					fmt.Printf("Extra file found: %v\n", filepath.Join(albumPath, filename))
+					bs.logger.Infof("Extra file found: %v", filepath.Join(albumPath, filename))
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		fmt.Printf("Albums error: %v\n", err)
+		bs.logger.Infof("Albums error: %v", err)
 	}
 }
 
@@ -139,7 +140,7 @@ func (bs *Session) StartFavorites() {
 			},
 		},
 	}
-	fmt.Println("Starting to back up favorites")
+	bs.logger.Info("Starting to back up favorites")
 	bs.startInternal(searchReq, dirName, existingFiles)
 }
 
@@ -156,13 +157,13 @@ func (bs *Session) existingFiles(dir string) map[string]bool {
 	fullDir := filepath.Join(bs.baseDestDir, dir)
 	f, err := os.Open(fullDir)
 	if err != nil {
-		fmt.Printf("error opening fullDir %v to count: %v\n", fullDir, err)
+		bs.logger.Infof("error opening fullDir %v to count: %v", fullDir, err)
 		return m
 	}
 	list, err := f.Readdirnames(-1)
 	f.Close()
 	if err != nil {
-		fmt.Printf("error reading dirnames: %v\n", err)
+		bs.logger.Infof("error reading dirnames: %v", err)
 		return m
 	}
 	m = make(map[string]bool, len(list))
@@ -178,6 +179,7 @@ type worker struct {
 	wg     *sync.WaitGroup
 	mu     *sync.Mutex
 	client *http.Client
+	logger *zap.SugaredLogger
 }
 
 func (w *worker) start(queue <-chan *mediaItemWrapper) {
@@ -185,35 +187,35 @@ func (w *worker) start(queue <-chan *mediaItemWrapper) {
 		select {
 		case miw := <-queue:
 			if viper.GetBool("verbose") {
-				fmt.Printf("Worker %v got %v of size %vw x %vh created at %v\n", w.id, miw.src.MimeType, miw.src.MediaMetadata.Width, miw.src.MediaMetadata.Height, miw.src.MediaMetadata.CreationTime)
+				w.logger.Infof("Worker %v got %v of size %vw x %vh created at %v", w.id, miw.src.MimeType, miw.src.MediaMetadata.Width, miw.src.MediaMetadata.Height, miw.src.MediaMetadata.CreationTime)
 			}
 
 			err := w.ensureDestExists(miw)
 			if err != nil {
-				fmt.Printf("Error creating dest for %v, err: %v\n", miw.src.Filename, err)
+				w.logger.Infof("Error creating dest for %v, err: %v", miw.src.Filename, err)
 				w.wg.Done()
 				continue
 			}
 			if !w.fileExists(miw.destFilepath()) {
 				data, err := w.fetchItem(miw)
 				if err != nil {
-					fmt.Printf("Error fetching %v, err: %v\n", miw.src.Filename, err)
+					w.logger.Infof("Error fetching %v, err: %v", miw.src.Filename, err)
 					w.wg.Done()
 					continue
 				}
 				if err = w.writeItem(miw, data); err != nil {
-					fmt.Printf("Error writing %v, err: %v\n", miw.destFilepath(), err)
+					w.logger.Infof("Error writing %v, err: %v", miw.destFilepath(), err)
 					w.wg.Done()
 					continue
 				}
 			} else {
 				if viper.GetBool("verbose") {
-					fmt.Printf("%v already exists\n", miw.destFilepathShort())
+					w.logger.Infof("%v already exists", miw.destFilepathShort())
 				}
 			}
 			w.wg.Done()
 		case <-w.stop:
-			fmt.Printf("Worker %v received stop signal\n", w.id)
+			w.logger.Infof("Worker %v received stop signal", w.id)
 			w.wg.Done()
 			return
 		}
@@ -256,7 +258,7 @@ func (w *worker) fetchItem(miw *mediaItemWrapper) ([]byte, error) {
 
 func (w *worker) writeItem(miw *mediaItemWrapper, data []byte) error {
 	defer func() {
-		fmt.Printf("Worker %v finished %v in %v\n", w.id, miw.destFilepathShort(), time.Since(miw.startTime))
+		w.logger.Infof("Worker %v finished %v in %v", w.id, miw.destFilepathShort(), time.Since(miw.startTime))
 	}()
 	if err := os.WriteFile(miw.destFilepath(), data, 0644); err != nil {
 		return errors.Wrapf(err, "writing item %v", miw.src.Id)
@@ -275,14 +277,14 @@ type mediaItemWrapper struct {
 	destDirName  string
 }
 
-func wrap(mi *photoslibrary.MediaItem, baseDestDir string, destDirName string) *mediaItemWrapper {
+func (bs *Session) wrap(mi *photoslibrary.MediaItem, destDirName string) *mediaItemWrapper {
 	t, err := time.Parse(time.RFC3339, mi.MediaMetadata.CreationTime)
 	if err != nil {
-		fmt.Printf("Error parsing timestamp %v for id %v\n", mi.MediaMetadata.CreationTime, mi.Id)
+		bs.logger.Infof("Error parsing timestamp %v for id %v", mi.MediaMetadata.CreationTime, mi.Id)
 	}
 	return &mediaItemWrapper{
 		src:          mi,
-		baseDestDir:  baseDestDir,
+		baseDestDir:  bs.baseDestDir,
 		creationTime: t,
 		startTime:    time.Now(),
 		destDirName:  destDirName,

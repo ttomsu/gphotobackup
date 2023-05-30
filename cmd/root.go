@@ -31,6 +31,8 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.PersistentFlags().String("out", "", "")
+	rootCmd.PersistentFlags().String("id", "", "Item ID")
+
 	checkError(viper.BindPFlags(rootCmd.PersistentFlags()))
 }
 

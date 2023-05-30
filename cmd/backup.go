@@ -30,12 +30,13 @@ var backupCmd = &cobra.Command{
 	Use:   "backup",
 	Short: "Download all photos/videos found in the specified album or date range",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		logger := NewLogger()
 		client, err := internal.NewClient()
 		if err != nil {
 			return errors.Wrapf(err, "new client")
 		}
 
-		bs, err := backup.NewSession(client, viper.GetString("out"), viper.GetInt("workers"))
+		bs, err := backup.NewSession(client, viper.GetString("out"), viper.GetInt("workers"), logger)
 		if err != nil {
 			return errors.Wrapf(err, "new session")
 		}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -14,9 +13,7 @@ import (
 func init() {
 	printCmd.AddCommand(albumCmd)
 
-	albumCmd.PersistentFlags().String("id", "", "Album ID")
 	albumCmd.MarkFlagRequired("id")
-
 	checkError(viper.BindPFlags(albumCmd.PersistentFlags()))
 }
 
@@ -24,6 +21,7 @@ var albumCmd = &cobra.Command{
 	Use:   "album",
 	Short: "Print media items in this album",
 	RunE: func(_ *cobra.Command, args []string) error {
+		logger := NewLogger()
 		client, err := internal.NewClient()
 		if err != nil {
 			return errors.Wrapf(err, "new client")
@@ -44,14 +42,14 @@ var albumCmd = &cobra.Command{
 				total = total + len(resp.MediaItems)
 				for _, item := range resp.MediaItems {
 					itemJSON, _ := json.MarshalIndent(item, "", "\t")
-					fmt.Printf("Photo/video found: %v\n", string(itemJSON))
+					logger.Infof("Photo/video found: %v", string(itemJSON))
 				}
 				return nil
 			})
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Total items found: %v\n", total)
+		logger.Infof("Total items found: %v", total)
 		return nil
 	},
 }

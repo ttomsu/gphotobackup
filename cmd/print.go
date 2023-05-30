@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
-	"fmt"
 	"github.com/spf13/viper"
 	"github.com/ttomsu/gphotobackup/internal/utils"
 	"os"
@@ -26,6 +25,7 @@ var printCmd = &cobra.Command{
 	Use:   "print",
 	Short: "Print all albums available",
 	RunE: func(_ *cobra.Command, args []string) error {
+		logger := NewLogger()
 		client, err := internal.NewClient()
 		if err != nil {
 			return errors.Wrapf(err, "new client")
@@ -40,7 +40,7 @@ var printCmd = &cobra.Command{
 		total := 0
 		err = svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 			total = total + len(resp.Albums)
-			fmt.Printf("Album count: %v\n", total)
+			logger.Infof("Album count: %v", total)
 			for _, album := range resp.Albums {
 				details = append(details, &albumDetail{
 					Name: utils.Sanitize(album.Title),
@@ -71,10 +71,12 @@ var printCmd = &cobra.Command{
 		writer := bufio.NewWriter(f)
 		for _, detail := range details {
 			b, _ := json.Marshal(detail)
-			_, err = writer.WriteString(string(b) + "\n")
+			_, err = writer.WriteString(string(b))
 			if err != nil {
 				return errors.Wrap(err, "writing details")
 			}
+			_, _ = writer.WriteRune('\n')
+
 		}
 		return writer.Flush()
 	},

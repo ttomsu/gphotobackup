@@ -34,6 +34,7 @@ var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Do the OAuth dance with the specified credentials and cache the results",
 	RunE: func(_ *cobra.Command, args []string) error {
+		logger := NewLogger()
 		oauthCreds, err := os.ReadFile(viper.GetString("creds"))
 		if err != nil {
 			return errors.Wrapf(err, "reading --creds flag")
@@ -61,10 +62,10 @@ var loginCmd = &cobra.Command{
 			})
 			go server.ListenAndServe()
 
-			fmt.Println("Waiting for approval...")
+			logger.Info("Waiting for approval...")
 		} else {
-			fmt.Printf("In another browser, navigate to:\n%v\n\n", url)
-			fmt.Println("Enter query parameter 'code' here:")
+			logger.Infof("In another browser, navigate to:\n%v\n\n", url)
+			logger.Info("Enter query parameter 'code' here:")
 			var c string
 			if _, err := fmt.Scan(&c); err != nil {
 				return errors.Wrap(err, "getting code from command line")
@@ -97,7 +98,7 @@ var loginCmd = &cobra.Command{
 		if err := internal.WriteToConfigDir(internal.OAuthClientFilename, oauthCreds); err != nil {
 			return errors.Wrapf(err, "writing oauth_client.json")
 		}
-		fmt.Println("Logged in!")
+		logger.Info("Logged in!")
 		return nil
 	},
 }
