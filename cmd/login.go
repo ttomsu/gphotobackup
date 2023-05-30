@@ -64,7 +64,7 @@ var loginCmd = &cobra.Command{
 
 			logger.Info("Waiting for approval...")
 		} else {
-			logger.Infof("In another browser, navigate to:\n%v\n\n", url)
+			logger.Infof("In a browser, navigate to:\n%v\n\n", url)
 			logger.Info("Enter query parameter 'code' here:")
 			var c string
 			if _, err := fmt.Scan(&c); err != nil {
