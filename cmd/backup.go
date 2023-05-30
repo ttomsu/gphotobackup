@@ -52,6 +52,7 @@ var backupCmd = &cobra.Command{
 			ey, em, ed := time.Now().Date()
 			sy, sm, sd := time.Now().Add(-1 * 24 * time.Hour * durDays).Date()
 			searchReq.Filters = &photoslibrary.Filters{
+				IncludeArchivedMedia: true,
 				DateFilter: &photoslibrary.DateFilter{
 					Ranges: []*photoslibrary.DateRange{
 						{
@@ -86,6 +87,7 @@ var backupCmd = &cobra.Command{
 
 			}
 			searchReq.Filters = &photoslibrary.Filters{
+				IncludeArchivedMedia: true,
 				DateFilter: &photoslibrary.DateFilter{
 					Ranges: []*photoslibrary.DateRange{
 						{

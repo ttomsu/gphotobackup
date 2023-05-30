@@ -70,7 +70,7 @@ gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --di
 msg "Starting gphotobackup"
 $BIN print --out "${args[1]}"/albums/albumIDs.jsonl
 $BIN backup \
---sinceDays 21 \
+--sinceDays 90 \
 --albums \
 --favorites \
 --out "${args[1]}" \
