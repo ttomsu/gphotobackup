@@ -37,8 +37,10 @@ var albumCmd = &cobra.Command{
 		if albumID == "" {
 			return errors.New("--id missing")
 		}
+		total := 0
 		err = cl.MediaItems.Search(&photoslibrary.SearchMediaItemsRequest{AlbumId: albumID}).
 			Pages(context.Background(), func(resp *photoslibrary.SearchMediaItemsResponse) error {
+				total = total + len(resp.MediaItems)
 				for _, item := range resp.MediaItems {
 					itemJSON, _ := json.MarshalIndent(item, "", "\t")
 					fmt.Printf("Photo/video found: %v\n", string(itemJSON))
@@ -48,6 +50,7 @@ var albumCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		fmt.Printf("Total items found: %v\n", total)
 		return nil
 	},
 }
