@@ -29,6 +29,9 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+
+	rootCmd.PersistentFlags().String("out", "", "")
+	checkError(viper.BindPFlags(rootCmd.PersistentFlags()))
 }
 
 // initConfig reads in config file and ENV variables if set.

@@ -21,7 +21,6 @@ func init() {
 	backupCmd.PersistentFlags().Int("sinceDays", 0, "")
 	backupCmd.PersistentFlags().String("start", "", "")
 	backupCmd.PersistentFlags().String("end", "", "")
-	backupCmd.PersistentFlags().String("out", ".", "")
 	backupCmd.PersistentFlags().Int("workers", 3, "Concurrent download workers")
 	backupCmd.PersistentFlags().Bool("verbose", true, "Emit details of all media items")
 
