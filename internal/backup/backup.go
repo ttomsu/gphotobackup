@@ -137,6 +137,7 @@ func (bs *Session) StartFavorites() {
 	searchReq := &photoslibrary.SearchMediaItemsRequest{
 		PageSize: 100,
 		Filters: &photoslibrary.Filters{
+			IncludeArchivedMedia: true,
 			FeatureFilter: &photoslibrary.FeatureFilter{
 				IncludedFeatures: []string{
 					"FAVORITES",
