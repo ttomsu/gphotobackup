@@ -68,7 +68,7 @@ msg "Downloading binary from run ID $RUNID"
 gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --dir $BIN_DIR
 
 msg "Starting gphotobackup"
-$BIN print --out albums/albumIDs.jsonl
+$BIN print --out "${args[1]}"/albums/albumIDs.jsonl
 $BIN backup \
 --sinceDays 21 \
 --albums \
