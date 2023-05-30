@@ -3,11 +3,11 @@ package backup
 import (
 	"context"
 	"fmt"
+	"github.com/ttomsu/gphotobackup/internal/utils"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -15,10 +15,6 @@ import (
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-)
-
-var (
-	specialChars = regexp.MustCompile(`\W`)
 )
 
 type Session struct {
@@ -104,7 +100,7 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 func (bs *Session) StartAlbums() {
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
-			albumPath := filepath.Join("albums", sanitize(album.Title))
+			albumPath := filepath.Join("albums", utils.Sanitize(album.Title))
 			existingFiles := bs.existingFiles(albumPath)
 
 			if len(existingFiles) == int(album.TotalMediaItems) {
@@ -320,7 +316,7 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 	var filename string
 	if lastDotIndex > 0 {
 		parts := []string{
-			sanitize(miw.src.Filename[0:lastDotIndex]),
+			utils.Sanitize(miw.src.Filename[0:lastDotIndex]),
 			miw.src.Filename[lastDotIndex+1 : len(miw.src.Filename)],
 		}
 		id := miw.src.Id
@@ -329,11 +325,7 @@ func (miw *mediaItemWrapper) filename(short bool) string {
 		}
 		filename = fmt.Sprintf("%v-%v.%v", parts[0], id, parts[1])
 	} else {
-		filename = sanitize(miw.src.Filename)
+		filename = utils.Sanitize(miw.src.Filename)
 	}
 	return filename
-}
-
-func sanitize(t string) string {
-	return specialChars.ReplaceAllString(t, "_")
 }
