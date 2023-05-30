@@ -60,6 +60,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int, logger
 }
 
 func (bs *Session) Start(searchReq *photoslibrary.SearchMediaItemsRequest) {
+	bs.logger.Infof("~~~ Starting to backup recent photos...")
 	bs.startInternal(searchReq, "", nil)
 }
 
@@ -99,7 +100,7 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 }
 
 func (bs *Session) StartAlbums() {
-	bs.logger.Info("Starting to back up albums")
+	bs.logger.Info("~~~ Starting to back up albums...")
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
 			albumPath := filepath.Join("albums", utils.Sanitize(album.Title))
@@ -143,7 +144,7 @@ func (bs *Session) StartFavorites() {
 			},
 		},
 	}
-	bs.logger.Info("Starting to back up favorites")
+	bs.logger.Info("~~~ Starting to back up favorites...")
 	bs.startInternal(searchReq, dirName, existingFiles)
 }
 
