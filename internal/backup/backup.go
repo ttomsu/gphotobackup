@@ -54,6 +54,7 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int, logger
 		wg:          wg,
 		baseDestDir: baseDestDir,
 		workers:     workers,
+		logger:      logger,
 	}, nil
 }
 
