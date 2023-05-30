@@ -20,8 +20,9 @@ import (
 func init() {
 	rootCmd.AddCommand(printCmd)
 
-	printCmd.Flags().String("out", "", "")
-	_ = viper.BindPFlag("out", printCmd.Flags().Lookup("out"))
+	printCmd.PersistentFlags().String("out", "", "")
+	_ = viper.BindPFlags(printCmd.PersistentFlags())
+	//_ = viper.BindPFlag("out", printCmd.PersistentFlags().Lookup("out"))
 }
 
 // printCmd represents the print command
@@ -33,6 +34,8 @@ var printCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrapf(err, "new client")
 		}
+
+		fmt.Printf("~~~ Outdir: %v\n", viper.GetString("out"))
 
 		svc, err := photoslibrary.New(client)
 		if err != nil {

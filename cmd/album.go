@@ -14,9 +14,10 @@ import (
 func init() {
 	printCmd.AddCommand(albumCmd)
 
-	albumCmd.Flags().String("id", "", "Album ID")
+	albumCmd.PersistentFlags().String("id", "", "Album ID")
 	albumCmd.MarkFlagRequired("id")
-	_ = viper.BindPFlag("id", albumCmd.Flags().Lookup("id"))
+
+	_ = viper.BindPFlags(albumCmd.PersistentFlags())
 }
 
 var albumCmd = &cobra.Command{

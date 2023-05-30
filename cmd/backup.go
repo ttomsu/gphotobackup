@@ -15,24 +15,17 @@ import (
 func init() {
 	rootCmd.AddCommand(backupCmd)
 
-	backupCmd.Flags().String("albumID", "", "")
-	_ = viper.BindPFlag("albumID", backupCmd.Flags().Lookup("albumID"))
-	backupCmd.Flags().Bool("albums", false, "Backup albums too")
-	_ = viper.BindPFlag("albums", backupCmd.Flags().Lookup("albums"))
-	backupCmd.Flags().Bool("favorites", false, "Backup favorites too")
-	_ = viper.BindPFlag("favorites", backupCmd.Flags().Lookup("favorites"))
-	backupCmd.Flags().Int("sinceDays", 0, "")
-	_ = viper.BindPFlag("sinceDays", backupCmd.Flags().Lookup("sinceDays"))
-	backupCmd.Flags().String("start", "", "")
-	_ = viper.BindPFlag("start", backupCmd.Flags().Lookup("start"))
-	backupCmd.Flags().String("end", "", "")
-	_ = viper.BindPFlag("end", backupCmd.Flags().Lookup("end"))
-	backupCmd.Flags().String("out", ".", "")
-	_ = viper.BindPFlag("out", backupCmd.Flags().Lookup("out"))
-	backupCmd.Flags().Int("workers", 3, "Concurrent download workers")
-	_ = viper.BindPFlag("workers", backupCmd.Flags().Lookup("workers"))
-	backupCmd.Flags().Bool("verbose", true, "Emit details of all media items")
-	_ = viper.BindPFlag("verbose", backupCmd.Flags().Lookup("verbose"))
+	backupCmd.PersistentFlags().String("albumID", "", "")
+	backupCmd.PersistentFlags().Bool("albums", false, "Backup albums too")
+	backupCmd.PersistentFlags().Bool("favorites", false, "Backup favorites too")
+	backupCmd.PersistentFlags().Int("sinceDays", 0, "")
+	backupCmd.PersistentFlags().String("start", "", "")
+	backupCmd.PersistentFlags().String("end", "", "")
+	backupCmd.PersistentFlags().String("out", ".", "")
+	backupCmd.PersistentFlags().Int("workers", 3, "Concurrent download workers")
+	backupCmd.PersistentFlags().Bool("verbose", true, "Emit details of all media items")
+
+	viper.BindPFlags(backupCmd.PersistentFlags())
 }
 
 var backupCmd = &cobra.Command{

@@ -21,12 +21,12 @@ import (
 func init() {
 	rootCmd.AddCommand(loginCmd)
 
-	loginCmd.Flags().String("creds", "", "Path to the OAuth 2.0 credentials file for the Photos Library API")
+	loginCmd.PersistentFlags().String("creds", "", "Path to the OAuth 2.0 credentials file for the Photos Library API")
 	loginCmd.MarkFlagRequired("creds")
-	_ = viper.BindPFlag("creds", loginCmd.Flags().Lookup("creds"))
 
-	loginCmd.Flags().Bool("browser", true, "Use a local browser to obtain user consent.")
-	_ = viper.BindPFlag("browser", loginCmd.Flags().Lookup("browser"))
+	loginCmd.PersistentFlags().Bool("browser", true, "Use a local browser to obtain user consent.")
+
+	_ = viper.BindPFlags(loginCmd.PersistentFlags())
 }
 
 // loginCmd represents the login command
