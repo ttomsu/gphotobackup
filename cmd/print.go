@@ -61,10 +61,11 @@ var printCmd = &cobra.Command{
 		})
 
 		var f *os.File
+		defer f.Close()
 		if out := viper.GetString("out"); out == "" {
 			f = os.Stdout
 		} else {
-			f, err = os.OpenFile(out, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			f, err = os.OpenFile(out, os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				return errors.Wrap(err, "opening out file")
 			}
@@ -78,7 +79,7 @@ var printCmd = &cobra.Command{
 				return errors.Wrap(err, "writing details")
 			}
 		}
-		return nil
+		return writer.Flush()
 	},
 }
 

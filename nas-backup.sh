@@ -6,7 +6,7 @@ trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 
 usage() {
-  cat <<EOF 
+  cat <<EOF
 Usage: $(basename "${BASH_SOURCE[0]}") [-h] path/to/gphotobackup baseDir
 
 Downloads the latest run of the binary and executes it with common parameters
@@ -68,6 +68,7 @@ msg "Downloading binary from run ID $RUNID"
 gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --dir $BIN_DIR
 
 msg "Starting gphotobackup"
+$BIN print --out albums/albumIDs.jsonl
 $BIN backup \
 --sinceDays 21 \
 --albums \
