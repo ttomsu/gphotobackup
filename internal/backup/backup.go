@@ -97,6 +97,7 @@ func (bs *Session) startInternal(searchReq *photoslibrary.SearchMediaItemsReques
 }
 
 func (bs *Session) StartAlbums() {
+	bs.logger.Info("Starting to back up albums")
 	err := bs.svc.Albums.List().Pages(context.Background(), func(resp *photoslibrary.ListAlbumsResponse) error {
 		for _, album := range resp.Albums {
 			albumPath := filepath.Join("albums", utils.Sanitize(album.Title))
@@ -116,14 +117,14 @@ func (bs *Session) StartAlbums() {
 
 			for filename, inAlbum := range existingFiles {
 				if !inAlbum {
-					bs.logger.Infof("Extra file found: %v", filepath.Join(albumPath, filename))
+					bs.logger.Warnf("Extra file found: %v", filepath.Join(albumPath, filename))
 				}
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		bs.logger.Infof("Albums error: %v", err)
+		bs.logger.Errorf("Albums error: %v", err)
 	}
 }
 
@@ -157,13 +158,13 @@ func (bs *Session) existingFiles(dir string) map[string]bool {
 	fullDir := filepath.Join(bs.baseDestDir, dir)
 	f, err := os.Open(fullDir)
 	if err != nil {
-		bs.logger.Infof("error opening fullDir %v to count: %v", fullDir, err)
+		bs.logger.Errorf("error opening fullDir %v to count: %v", fullDir, err)
 		return m
 	}
 	list, err := f.Readdirnames(-1)
 	f.Close()
 	if err != nil {
-		bs.logger.Infof("error reading dirnames: %v", err)
+		bs.logger.Errorf("error reading dirnames: %v", err)
 		return m
 	}
 	m = make(map[string]bool, len(list))
@@ -187,35 +188,35 @@ func (w *worker) start(queue <-chan *mediaItemWrapper) {
 		select {
 		case miw := <-queue:
 			if viper.GetBool("verbose") {
-				w.logger.Infof("Worker %v got %v of size %vw x %vh created at %v", w.id, miw.src.MimeType, miw.src.MediaMetadata.Width, miw.src.MediaMetadata.Height, miw.src.MediaMetadata.CreationTime)
+				w.logger.Debugf("Worker %v got %v of size %vw x %vh created at %v", w.id, miw.src.MimeType, miw.src.MediaMetadata.Width, miw.src.MediaMetadata.Height, miw.src.MediaMetadata.CreationTime)
 			}
 
 			err := w.ensureDestExists(miw)
 			if err != nil {
-				w.logger.Infof("Error creating dest for %v, err: %v", miw.src.Filename, err)
+				w.logger.Errorf("Error creating dest for %v, err: %v", miw.src.Filename, err)
 				w.wg.Done()
 				continue
 			}
 			if !w.fileExists(miw.destFilepath()) {
 				data, err := w.fetchItem(miw)
 				if err != nil {
-					w.logger.Infof("Error fetching %v, err: %v", miw.src.Filename, err)
+					w.logger.Errorf("Error fetching %v, err: %v", miw.src.Filename, err)
 					w.wg.Done()
 					continue
 				}
 				if err = w.writeItem(miw, data); err != nil {
-					w.logger.Infof("Error writing %v, err: %v", miw.destFilepath(), err)
+					w.logger.Errorf("Error writing %v, err: %v", miw.destFilepath(), err)
 					w.wg.Done()
 					continue
 				}
 			} else {
 				if viper.GetBool("verbose") {
-					w.logger.Infof("%v already exists", miw.destFilepathShort())
+					w.logger.Debugf("%v already exists", miw.destFilepathShort())
 				}
 			}
 			w.wg.Done()
 		case <-w.stop:
-			w.logger.Infof("Worker %v received stop signal", w.id)
+			w.logger.Debugf("Worker %v received stop signal", w.id)
 			w.wg.Done()
 			return
 		}
@@ -258,7 +259,7 @@ func (w *worker) fetchItem(miw *mediaItemWrapper) ([]byte, error) {
 
 func (w *worker) writeItem(miw *mediaItemWrapper, data []byte) error {
 	defer func() {
-		w.logger.Infof("Worker %v finished %v in %v", w.id, miw.destFilepathShort(), time.Since(miw.startTime))
+		w.logger.Debugf("Worker %v finished %v in %v", w.id, miw.destFilepathShort(), time.Since(miw.startTime))
 	}()
 	if err := os.WriteFile(miw.destFilepath(), data, 0644); err != nil {
 		return errors.Wrapf(err, "writing item %v", miw.src.Id)
@@ -280,7 +281,7 @@ type mediaItemWrapper struct {
 func (bs *Session) wrap(mi *photoslibrary.MediaItem, destDirName string) *mediaItemWrapper {
 	t, err := time.Parse(time.RFC3339, mi.MediaMetadata.CreationTime)
 	if err != nil {
-		bs.logger.Infof("Error parsing timestamp %v for id %v", mi.MediaMetadata.CreationTime, mi.Id)
+		bs.logger.Errorf("Error parsing timestamp %v for id %v", mi.MediaMetadata.CreationTime, mi.Id)
 	}
 	return &mediaItemWrapper{
 		src:          mi,
