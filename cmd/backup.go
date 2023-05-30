@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/gphotosuploader/googlemirror/api/photoslibrary/v1"
@@ -43,6 +44,7 @@ var backupCmd = &cobra.Command{
 			return errors.Wrapf(err, "new client")
 		}
 
+		fmt.Printf("~~~ Outdir: %v\n", viper.GetString("out"))
 		bs, err := backup.NewSession(client, viper.GetString("out"), viper.GetInt("workers"))
 		if err != nil {
 			return errors.Wrapf(err, "new session")

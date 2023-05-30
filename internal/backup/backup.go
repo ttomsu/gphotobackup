@@ -23,8 +23,6 @@ type Session struct {
 	wg          *sync.WaitGroup
 	baseDestDir string
 	workers     []*worker
-	//existingFilenames map[string]bool
-	//filenameChan      chan string
 }
 
 func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Session, error) {
@@ -39,12 +37,11 @@ func NewSession(client *http.Client, baseDestDir string, workerCount int) (*Sess
 	workers := make([]*worker, workerCount)
 	for i := 0; i < workerCount; i++ {
 		workers[i] = &worker{
-			id:          i,
-			stop:        make(chan bool),
-			wg:          wg,
-			baseDestDir: baseDestDir,
-			mu:          mu,
-			client:      client,
+			id:     i,
+			stop:   make(chan bool),
+			wg:     wg,
+			mu:     mu,
+			client: client,
 		}
 	}
 
@@ -176,12 +173,11 @@ func (bs *Session) existingFiles(dir string) map[string]bool {
 }
 
 type worker struct {
-	id          int
-	stop        chan bool
-	wg          *sync.WaitGroup
-	baseDestDir string
-	mu          *sync.Mutex
-	client      *http.Client
+	id     int
+	stop   chan bool
+	wg     *sync.WaitGroup
+	mu     *sync.Mutex
+	client *http.Client
 }
 
 func (w *worker) start(queue <-chan *mediaItemWrapper) {
