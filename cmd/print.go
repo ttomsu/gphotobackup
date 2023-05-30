@@ -31,8 +31,6 @@ var printCmd = &cobra.Command{
 			return errors.Wrapf(err, "new client")
 		}
 
-		fmt.Printf("~~~ Outdir: %v\n", viper.GetString("out"))
-
 		svc, err := photoslibrary.New(client)
 		if err != nil {
 			return errors.Wrap(err, "service client")
