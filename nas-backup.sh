@@ -59,13 +59,14 @@ BIN_DIR=$(dirname "${args[0]}")
 BIN="${args[0]}"
 
 if [[ -f "$BIN" ]]; then
- msg "Removing old binary"
- rm $BIN
+  RUNID=`gh run list --repo ttomsu/gphotobackup --workflow go.yml --limit 1 --json databaseId --jq .[0].databaseId`
+  echo "Downloading binary from run ID $RUNID"
+  gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --dir $BIN_DIR
+
+  echo "Symlinking new binary"
+  ln -s $BIN-$RUNID $BIN
 fi
 
-RUNID=`gh run list --repo ttomsu/gphotobackup --workflow go.yml --limit 1 --json databaseId --jq .[0].databaseId`
-msg "Downloading binary from run ID $RUNID"
-gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --dir $BIN_DIR
 
 msg "Starting gphotobackup"
 $BIN print --out "${args[1]}"/albums/albumIDs.jsonl
