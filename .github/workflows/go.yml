@@ -31,7 +31,7 @@ jobs:
       run: go test -v ./...
 
     - name: Build Linux binary
-      run: go build -o gphotobackup-linux gphotobackup.go
+      run: go build -o gphotobackup-linux-$GITHUB_RUN_ID gphotobackup.go
 
     - name: Save Binary
       uses: actions/upload-artifact@v3
