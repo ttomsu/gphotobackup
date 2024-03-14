@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -Eeuo pipefail
+set -Euo pipefail
 trap cleanup SIGINT SIGTERM ERR EXIT
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
@@ -58,13 +58,20 @@ parse_params "$@"
 BIN_DIR=$(dirname "${args[0]}")
 BIN="${args[0]}"
 
-if [[ -f "$BIN" ]]; then
-  RUNID=`gh run list --repo ttomsu/gphotobackup --workflow go.yml --limit 1 --json databaseId --jq .[0].databaseId`
-  echo "Downloading binary from run ID $RUNID"
-  gh run download --repo ttomsu/gphotobackup $RUNID --name gphotobackup-linux --dir $BIN_DIR
-
-  echo "Symlinking new binary"
-  ln -s $BIN-$RUNID $BIN
+if [[ -h "$BIN" ]]; then
+  if ! RUN_ID=$(gh run list --repo ttomsu/gphotobackup --workflow go.yml --limit 1 --json databaseId --jq '.[0].databaseId'); then
+    echo "Failed to get latest run ID"
+  elif [[ ! -f "$BIN-$RUN_ID" ]]; then
+    echo "Downloading binary from run ID $RUN_ID"
+    if ! gh run download --repo ttomsu/gphotobackup "$RUN_ID" --name gphotobackup-linux --dir "$BIN_DIR"; then
+       echo "Failed to download binary"
+    else
+      echo "Symlinking new binary"
+      chmod 755 "$BIN-$RUN_ID"
+      rm "$BIN"
+      ln -s "$BIN-$RUN_ID" "$BIN"
+    fi
+  fi
 fi
 
 
