@@ -1,5 +1,5 @@
 
-name: Go
+name: Update Modules
 
 on:
   workflow_dispatch:
