@@ -1,0 +1,53 @@
+
+name: Go
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '50 12 1 * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Update modules
+        run: |
+          go get -u ./...
+          go mod tidy
+
+      - name: Build All Packages
+        run: go build -v ./...
+
+      - name: Test
+        run: go test -v ./...
+
+      - name: Build Linux binary
+        run: go build -o gphotobackup-linux-$GITHUB_RUN_ID gphotobackup.go
+
+      - name: Save Binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: gphotobackup-linux
+          path: gphotobackup-linux*
+
+      - name: Create PR
+        id: cpr
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: "Update modules"
+          reviewers: ttomsu
+          commit-message: "Update go modules"
+          delete-branch: true
+
+      - name: Auto-merge
+        run: gh pr merge --rebase "${{ steps.cpr.outputs.pull-request-number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
