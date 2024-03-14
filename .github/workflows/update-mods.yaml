@@ -7,7 +7,7 @@ on:
     - cron: '50 12 1 * *'
 
 jobs:
-  build:
+  update-modules:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,15 +27,6 @@ jobs:
 
       - name: Test
         run: go test -v ./...
-
-      - name: Build Linux binary
-        run: go build -o gphotobackup-linux-$GITHUB_RUN_ID gphotobackup.go
-
-      - name: Save Binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: gphotobackup-linux
-          path: gphotobackup-linux*
 
       - name: Create PR
         id: cpr
